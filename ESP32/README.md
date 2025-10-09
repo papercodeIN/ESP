@@ -1,4 +1,4 @@
-# Seeed Studio XIAO ESP32C3
+# ESP32
 
 ---
 <p align="center">
