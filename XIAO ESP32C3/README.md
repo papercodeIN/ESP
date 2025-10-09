@@ -19,14 +19,14 @@
 
 ---
 
-
-## Firmware
+$\color{Orange}\Huge{\textbf{Firmware}}$
 
 1. 🆓️How to Flash Factory Firmware in XIAO ESP32C3 [[Watch]](https://youtu.be/-rI5l7HxSTI)
 2. 🆓️How to Flash Micropython Firmware in XIAO ESP32C3 | ESP32 | [[Watch]](https://youtu.be/DguONHx8V9Q) [[Blog]](https://fusionautomate.in/how-to-flash-micropython-firmware-in-seed-studio-xiao-esp32c3-using-esptool/)
 
 ---
-## MQTT Publisher
+
+$\color{Orange}\Huge{\textbf{MQTT Publisher}}$
 
 1. ⌛How to Publish DHT11 Sensor Data to HiveMQ MQTT Borker using XIAO ESP32C3
 ---
