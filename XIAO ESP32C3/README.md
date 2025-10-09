@@ -19,39 +19,46 @@
 
 ---
 
-$\color{Orange}\Huge{\textbf{Firmware}}$
+$\color{Green}\Huge{\textbf{Firmware}}$
 
 1. 🆓️How to Flash Factory Firmware in XIAO ESP32C3 [[Watch]](https://youtu.be/-rI5l7HxSTI)
 2. 🆓️How to Flash Micropython Firmware in XIAO ESP32C3 | ESP32 | [[Watch]](https://youtu.be/DguONHx8V9Q) [[Blog]](https://fusionautomate.in/how-to-flash-micropython-firmware-in-seed-studio-xiao-esp32c3-using-esptool/)
 
 ---
 
-$\color{Orange}\Huge{\textbf{MQTT Publisher}}$
+$\color{Green}\Huge{\textbf{MQTT Publisher}}$
 
 1. ⌛How to Publish DHT11 Sensor Data to HiveMQ MQTT Borker using XIAO ESP32C3
 ---
-## Modbus Client + MQTT Publisher
+
+$\color{Green}\Huge{\textbf{Modbus Client + MQTT Publisher}}$
 
 1. ⌛Modbus TCP to MQTT Converter using XIAO ESP32C3 for Single Set of HR
 2. ⌛Modbus TCP to MQTT Converter using XIAO ESP32C3 for Multiple Set of HR [Single Unit ID]
 3. ⌛Modbus TCP to MQTT Converter using XIAO ESP32C3 for Multiple Set of HR [Multiple Unit ID]
 4. ⌛Publish SHT20 Modbus RS485 Temperature and Humidity Transmitter Data to MQTT Broker from XIAO ESP32C3
 ---
-## XIAO ESP32C3 as Modbus TCP/IP Server or Device
+
+$\color{Green}\Huge{\textbf{XIAO ESP32C3 as Modbus TCP/IP Server or Device}}$
 
 1. 🆓️How to Create Modbus TCP/IP Server/Device with using XIAO ESP32C3 [[Watch]](https://youtu.be/rWTEfvU_PKg) 
 2. 🆓️How to Publish Analog Sensor Data from XIAO ESP32C3 to Built-in Modbus TCP/IP Server/Device and Read it in any Modbus Client [[Watch]](https://youtu.be/Z6hdz__S-pw) 
 3. 🆓️How to Control Digital Pins of XIAO ESP32C3 using Built-in Modbus TCP Server from Remote Modbus Client [[Watch]](https://youtu.be/poAjAfELsgE) 
 4. 🆓️How to Publish DHT11 Sensor Data from XIAO ESP32C3 to Built-in Modbus TCP/IP Server/Device and Read it in Any Modbus Client [[Watch]](https://youtu.be/scSVUt-cMPc) [[Blog]](https://fusion-automate.blogspot.com/2024/03/how-to-publish-dht11-sensor-data-from.html) 
+
 ---
-## XIAO ESP32C3 as Modbus TCP/IP Client
+
+$\color{Green}\Huge{\textbf{XIAO ESP32C3 as Modbus TCP/IP Client}}$
 
 1. 🆓️Read Holding Register of Modbus TCP/IP Device using XIAO ESP32C3 [[Watch]](https://youtu.be/dP7jTveWYLQ) 
 2. 🆓️Read Input Register of Modbus TCP/IP Device using XIAO ESP32C3 [[Watch]](https://youtu.be/JUuocahaubI) 
 3. 🆓️Read Coil Status of Modbus TCP/IP Device using XIAO ESP32C3 [[Watch]](https://youtu.be/QYr1RRCvBhw) 
 4. 🆓️Read Input Coil Status of Modbus TCP/IP Device using XIAO ESP32C3 [[Watch]](https://youtu.be/BEnR4eqWpBs)
+
 ---
-## XIAO ESP32C3 as MQTT Broker | [EmbeddedMQTTBroker](https://github.com/alexCajas/EmbeddedMqttBroker)  https://github.com/alexCajas/EmbeddedMqttBroker
+$\color{Green}\Huge{\textbf{XIAO ESP32C3 as MQTT Broker}}$
+
+[EmbeddedMQTTBroker](https://github.com/alexCajas/EmbeddedMqttBroker)  
 
 1. 🆓️XIAO ESP32C3 as MQTT Broker | How to Setup MQTT Broker in XIAO ESP32C3 using EmbeddedMQTTBroker Library [[Watch]](https://youtu.be/EelvH5j9luU)
 
