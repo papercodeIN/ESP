@@ -21,7 +21,7 @@
 
 $\color{Green}\Huge{\textbf{MQTT Implementation}}$
 
-1. 🆓How to Publish DHT11 Sensor Data from NodeMCU to Mosquitto MQTT Broker over LAN [[Watch]](https://youtu.be/5rHWeV0dwxo)
+1. 🆓[How to Publish DHT11 Sensor Data from NodeMCU to Mosquitto MQTT Broker over LAN](https://youtu.be/5rHWeV0dwxo)
 2. ⌛How to Publish DHT11 Sensor Data from NodeMCU to HiveMQ MQTT Broker [Watch]
 3. 🆓How to use MQTT Engine Module in Ignition SCADA | Publish DHT11 Data from NodeMCU to Ignition | [[Watch]](https://youtu.be/N9J7Hd5IIfw)
 
