@@ -1,4 +1,4 @@
-<img align="right" src="https://visitor-badge.laobi.icu/badge?page_id=papercodeIN.ESP" height="20" />
+# Seeed Studio XIAO ESP32C3
 
 ---
 <p align="center">
@@ -19,7 +19,6 @@
 
 ---
 
-# Seeed Studio XIAO ESP32C3
 
 ## **Firmware**
 
