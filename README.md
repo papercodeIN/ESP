@@ -2,16 +2,6 @@
 
 ---
 
-> **Seeed Studio XIAO ESP32C3**
-> 
-
-> Membership Required: **Free**
-> 
-
-<aside>
-📝 **Course Outline ⤵️**
-
-</aside>
 
 ## **Firmware**
 
@@ -20,7 +10,7 @@
 
 ## MQTT Publisher
 
-1. ⌛How to Publish DHT11 Sensor Data to HiveMQ MQTT Borker using XIAO ESP32C3 **[Watch] [[Code]](https://github.com/papercodeIN/Embedded_Devices/blob/main/XIAO%20ESP32C3/How%20to%20Publish%20DHT11%20Sensor%20Data%20to%20HiveMQ%20MQTT%20Borker%20using%20XIAO%20ESP32C3/Sketch/Sketch.ino)**
+1. ⌛Publish DHT11 Sensor Data to HiveMQ MQTT Borker using XIAO ESP32C3 **[Watch] [[Code]](https://github.com/papercodeIN/Embedded_Devices/blob/main/XIAO%20ESP32C3/How%20to%20Publish%20DHT11%20Sensor%20Data%20to%20HiveMQ%20MQTT%20Borker%20using%20XIAO%20ESP32C3/Sketch/Sketch.ino)**
 
 ## Modbus Client + MQTT Publisher
 
