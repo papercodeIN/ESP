@@ -1,4 +1,4 @@
-# Seeed Studio XIAO ESP32C3
+# NodeMCU - ESP8266
 
 ---
 <p align="center">
