@@ -27,6 +27,8 @@
 
 
 <span style="color:green">MQTT Publisher</span>
+<p style="color:blue;">MQTT Publisher</p>
+
 
 
 1. ⌛How to Publish DHT11 Sensor Data to HiveMQ MQTT Borker using XIAO ESP32C3 [Watch] [[Code]](
