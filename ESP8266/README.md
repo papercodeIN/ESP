@@ -29,16 +29,16 @@ $\color{Green}\Huge{\textbf{MQTT Implementation}}$
 
 $\color{Green}\Huge{\textbf{Modbus Client + MQTT Publisher}}$
 
-1. ⌛Modbus TCP to MQTT Converter using NodeMCU for Single Set of HR [Watch]
-2. ⌛Modbus TCP to MQTT Converter using NodeMCU for Multiple Set of HR [Single Unit ID] [Watch]
-3. ⌛Modbus TCP to MQTT Converter using NodeMCU for Multiple Set of HR [Multiple Unit ID] [Watch]
-4. ⌛Publish SHT20 Modbus RS485 Temperature and Humidity Transmitter Data to MQTT Broker from NodeMCU ESP866 [Watch]
+1. ⌛Modbus TCP to MQTT Converter using NodeMCU for Single Set of HR
+2. ⌛Modbus TCP to MQTT Converter using NodeMCU for Multiple Set of HR [Single Unit ID]
+3. ⌛Modbus TCP to MQTT Converter using NodeMCU for Multiple Set of HR [Multiple Unit ID]
+4. ⌛Publish SHT20 Modbus RS485 Temperature and Humidity Transmitter Data to MQTT Broker from NodeMCU ESP866
 
 ---
 
 $\color{Green}\Huge{\textbf{NodeMCU as Modbus TCP/IP Device or Server}}$
 
-1. ⌛How to Create Modbus Server with using NodeMCU [Single Client Support Only] [Watch]
+1. ⌛How to Create Modbus Server with using NodeMCU [Single Client Support Only]
 2. ⌛How to Publish Analog Sensor Data from NodeMCU to Built-in Modbus TCP Server and Read it in Modbus Client [Watch]
 3. 🆓How to Control Digital Pins of NodeMCU Via Built-in Modbus TCP Server from Remote Modbus Client [[Watch]](https://youtu.be/z-aYavzOAv8) [[Blog]](https://fusion-automate.blogspot.com/2024/03/controlling-digital-pins-of-nodemcu.html)
 4. 🆓How to Publish DHT11 Sensor Data from NodeMCU to Built-in Modbus TCP Server [[Watch]](https://youtu.be/tEba7USNLDI)
@@ -48,10 +48,10 @@ $\color{Green}\Huge{\textbf{NodeMCU as Modbus TCP/IP Device or Server}}$
 
 $\color{Green}\Huge{\textbf{NodeMCU as Modbus TCP/IP Client}}$
 
-1. ⌛How to Create Modbus Client using NodeMCU to Read N number of Holding Register from Modbus TCP Device [Watch]
-2. ⌛How to Create Modbus Client using NodeMCU to Read N number of Input Register from Modbus TCP Device [Watch]
-3. ⌛How to Create Modbus Client using NodeMCU to Read N number of Coil from Modbus TCP Device [Watch]
-4. ⌛How to Create Modbus Client using NodeMCU to Read N number of Input Coil from Modbus TCP Device [Watch]
+1. ⌛How to Create Modbus Client using NodeMCU to Read N number of Holding Register from Modbus TCP Device
+2. ⌛How to Create Modbus Client using NodeMCU to Read N number of Input Register from Modbus TCP Device
+3. ⌛How to Create Modbus Client using NodeMCU to Read N number of Coil from Modbus TCP Device
+4. ⌛How to Create Modbus Client using NodeMCU to Read N number of Input Coil from Modbus TCP Device
 
 ---
 
