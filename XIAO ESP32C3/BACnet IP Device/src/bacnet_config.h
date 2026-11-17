@@ -12,14 +12,23 @@
 /* ------------------------------------------------------------------------- */
 /* Default Wi-Fi credentials                                                 */
 /* ------------------------------------------------------------------------- */
-/* The device joins this network automatically on first boot (and after a
- * factory reset). Leave both empty instead to start in setup mode: join the
- * open "bacnet-...-XXXX" access point and configure Wi-Fi at
- * http://192.168.4.1.
+/* Real credentials live in src/bacnet_secrets.h, which is git-ignored and
+ * never committed (see bacnet_secrets.h.example). Leave both empty to start
+ * in setup mode instead: join the open "bacnet-...-XXXX" access point and
+ * configure Wi-Fi at http://192.168.4.1.
  *
  * Note: values set here are compiled into the firmware binary. */
-#define BACNET_DEFAULT_WIFI_SSID "Capgemini_4G"
-#define BACNET_DEFAULT_WIFI_PASSWORD "MN704116"
+#if __has_include("bacnet_secrets.h")
+#include "bacnet_secrets.h"
+#endif
+
+#ifndef BACNET_DEFAULT_WIFI_SSID
+#define BACNET_DEFAULT_WIFI_SSID "YOUR_WIFI_SSID"
+#endif
+
+#ifndef BACNET_DEFAULT_WIFI_PASSWORD
+#define BACNET_DEFAULT_WIFI_PASSWORD "YOUR_WIFI_PASSWORD"
+#endif
 
 #define BACNET_DEFAULT_HOSTNAME "bacnet-xiao-c3"
 

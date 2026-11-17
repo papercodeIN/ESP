@@ -2,12 +2,10 @@
 #include "time.h"
 #include <TFT_eSPI.h>
 #include "unihiker_k10.h"
+#include "secrets.h"   // git-ignored: copy secrets.h.example and fill it in
 
 UNIHIKER_K10 k10;
 TFT_eSPI tft = TFT_eSPI();
-
-const char* ssid = "Capgemini_4G";
-const char* password = "MN704116";
 
 const char* ntpServer = "pool.ntp.org";
 long gmtOffset_sec = 19800;   // India

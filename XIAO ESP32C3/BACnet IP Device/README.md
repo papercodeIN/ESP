@@ -114,12 +114,13 @@ python -m platformio device monitor -b 115200   # live serial log
 
 ### 5. First boot
 
-The firmware ships with default Wi-Fi credentials in `src/bacnet_config.h`
-(`Capgemini_4G` / `MN704116` by default), so a fresh device joins that
-network automatically. The serial monitor confirms the connection:
+Real Wi-Fi credentials live in `src/bacnet_secrets.h`, a git-ignored file
+that is never committed (copy `src/bacnet_secrets.h.example` and fill it
+in), so a fresh device joins that network automatically. The serial monitor
+confirms the connection:
 
 ```
-[WiFi] Connecting to "Capgemini_4G"...
+[WiFi] Connecting to "YOUR_WIFI_SSID"...
 [WiFi] Connected: 192.168.1.x (-60 dBm)
 [BACnet] Device 1234 ready on 192.168.1.x:47808
 ```
@@ -256,10 +257,11 @@ tools/bacnet_test.py    dependency-free BACnet/IP test client
 
 - `src/bacnet_config.h` seeds the defaults on first boot and after a factory
   reset. After that, everything is configured in the web UI.
-- The default Wi-Fi credentials (`Capgemini_4G` / `MN704116`) are compiled
-  into the firmware binary — convenient for the lab, but switch to empty
-  defaults and configure over the setup access point before shipping a
-  device or publishing the binary.
+- Real Wi-Fi credentials belong in `src/bacnet_secrets.h` (git-ignored, copy
+  `src/bacnet_secrets.h.example`). They are compiled into the firmware
+  binary — convenient for the lab, but switch to empty defaults and
+  configure over the setup access point before shipping a device or
+  publishing the binary.
 - Radio settings for BACnet stability: Wi-Fi modem sleep is disabled and
   TX power is pinned at the ESP32-C3 maximum (19.5 dBm). Remaining signal
   gains are physical: antenna routing/placement, distance to the router,

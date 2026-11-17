@@ -19,3 +19,6 @@ build.log
 # Python
 __pycache__/
 *.pyc
+
+# Local credentials (never commit)
+src/bacnet_secrets.h
