@@ -1,0 +1,558 @@
+/**
+ * @file bacnet_web.cpp
+ * @brief HTTP configuration UI and JSON API.
+ *
+ * Endpoints
+ *   GET  /                      single-page interface
+ *   GET  /api/status            runtime status
+ *   GET  /api/settings          stored configuration
+ *   POST /api/settings          update configuration (form encoded)
+ *   GET  /api/points            object list with present values
+ *   POST /api/points/write      write present-value or release a priority
+ *   POST /api/reboot            restart the device
+ *   POST /api/factory-reset     erase settings and restart
+ */
+#include "bacnet_web.h"
+
+#include <Arduino.h>
+#include <WiFi.h>
+#include <WebServer.h>
+#include <math.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "bacnet_config.h"
+#include "bacnet_objects.h"
+#include "bacnet_settings.h"
+#include "portal_name.h"
+#include "web_page.h"
+
+namespace webui {
+namespace {
+
+WebServer g_server(BACNET_WEB_PORT);
+bool g_started = false;
+uint32_t g_restartAtMs = 0;
+
+/* ------------------------------------------------------------------------- */
+/* Helpers                                                                   */
+/* ------------------------------------------------------------------------- */
+void copyText(char *destination, size_t capacity, const char *source)
+{
+    if (!destination || capacity == 0) {
+        return;
+    }
+    strncpy(destination, source ? source : "", capacity - 1);
+    destination[capacity - 1] = '\0';
+}
+
+String jsonEscape(const char *text)
+{
+    String result;
+    if (!text) {
+        return result;
+    }
+    for (const char *p = text; *p; ++p) {
+        const char c = *p;
+        if (c == '"' || c == '\\') {
+            result += '\\';
+            result += c;
+        } else if (c == '\n') {
+            result += "\\n";
+        } else if (c == '\r') {
+            result += "\\r";
+        } else if (c == '\t') {
+            result += "\\t";
+        } else if (static_cast<unsigned char>(c) < 0x20) {
+            result += ' ';
+        } else {
+            result += c;
+        }
+    }
+    return result;
+}
+
+const char *kindName(uint16_t type)
+{
+    switch (type) {
+        case bacnet::kObjectAnalogInput:
+            return "AI";
+        case bacnet::kObjectAnalogOutput:
+            return "AO";
+        case bacnet::kObjectAnalogValue:
+            return "AV";
+        case bacnet::kObjectBinaryInput:
+            return "BI";
+        case bacnet::kObjectBinaryOutput:
+            return "BO";
+        case bacnet::kObjectBinaryValue:
+            return "BV";
+        case bacnet::kObjectDevice:
+            return "DEV";
+        default:
+            return "OBJ";
+    }
+}
+
+void sendJson(int code, const String &body)
+{
+    g_server.sendHeader("Cache-Control", "no-store");
+    g_server.send(code, "application/json", body);
+}
+
+void rebootSoon(uint32_t delayMs)
+{
+    g_restartAtMs = millis() + delayMs;
+    if (g_restartAtMs == 0) {
+        g_restartAtMs = 1;
+    }
+}
+
+/* ------------------------------------------------------------------------- */
+/* Handlers                                                                  */
+/* ------------------------------------------------------------------------- */
+void handleRoot()
+{
+    g_server.sendHeader("Cache-Control", "no-store");
+    g_server.send_P(200, "text/html", kWebIndexHtml);
+}
+
+void handleFavicon()
+{
+    g_server.send(204, "text/plain", "");
+}
+
+void handleNotFound()
+{
+    g_server.send(404, "text/plain", "Not found");
+}
+
+void handleStatus()
+{
+    settings::Config &cfg = settings::get();
+    const bool portal = (WiFi.getMode() & WIFI_MODE_AP) != 0;
+    const bool connected = WiFi.status() == WL_CONNECTED;
+
+    String json;
+    json.reserve(400);
+    json += "{\"name\":\"";
+    json += jsonEscape(cfg.deviceName);
+    json += "\",\"instance\":";
+    json += static_cast<unsigned long>(cfg.deviceInstance);
+    json += ",\"mode\":\"";
+    json += portal ? "Setup access point" : (connected ? "Station" : "Connecting");
+    json += "\",\"portal\":";
+    json += portal ? "true" : "false";
+    json += ",\"connected\":";
+    json += connected ? "true" : "false";
+    json += ",\"ssid\":\"";
+    json += jsonEscape(portal ? makePortalSsid(cfg.hostname).c_str()
+                              : cfg.wifiSsid);
+    json += "\",\"ip\":\"";
+    json += portal ? WiFi.softAPIP().toString() : WiFi.localIP().toString();
+    json += "\",\"rssi\":";
+    json += connected ? WiFi.RSSI() : 0;
+    json += ",\"uptime\":";
+    json += static_cast<unsigned long>(millis() / 1000);
+    json += ",\"heap\":";
+    json += static_cast<unsigned long>(ESP.getFreeHeap());
+    json += ",\"port\":";
+    json += cfg.bacnetPort;
+    json += ",\"firmware\":\"";
+    json += jsonEscape(cfg.firmwareRevision);
+    json += "\",\"hostname\":\"";
+    json += jsonEscape(cfg.hostname);
+    json += "\",\"web\":";
+    json += (cfg.webEnabled || portal) ? "true" : "false";
+    json += "}";
+    sendJson(200, json);
+}
+
+void handleSettingsGet()
+{
+    settings::Config &cfg = settings::get();
+
+    String json;
+    json.reserve(700);
+    json += "{\"ssid\":\"";
+    json += jsonEscape(cfg.wifiSsid);
+    json += "\",\"hasPass\":";
+    json += cfg.wifiPassword[0] ? "true" : "false";
+    json += ",\"hostname\":\"";
+    json += jsonEscape(cfg.hostname);
+    json += "\",\"static\":";
+    json += cfg.useStaticIp ? "true" : "false";
+    json += ",\"ip\":\"";
+    json += jsonEscape(cfg.staticIp);
+    json += "\",\"gw\":\"";
+    json += jsonEscape(cfg.gateway);
+    json += "\",\"mask\":\"";
+    json += jsonEscape(cfg.subnet);
+    json += "\",\"dns\":\"";
+    json += jsonEscape(cfg.dns);
+    json += "\",\"apPass\":\"";
+    json += jsonEscape(cfg.apPassword);
+    json += "\",\"instance\":";
+    json += static_cast<unsigned long>(cfg.deviceInstance);
+    json += ",\"name\":\"";
+    json += jsonEscape(cfg.deviceName);
+    json += "\",\"desc\":\"";
+    json += jsonEscape(cfg.deviceDescription);
+    json += "\",\"location\":\"";
+    json += jsonEscape(cfg.deviceLocation);
+    json += "\",\"vendorId\":";
+    json += cfg.vendorId;
+    json += ",\"vendorName\":\"";
+    json += jsonEscape(cfg.vendorName);
+    json += "\",\"model\":\"";
+    json += jsonEscape(cfg.modelName);
+    json += "\",\"firmware\":\"";
+    json += jsonEscape(cfg.firmwareRevision);
+    json += "\",\"appVersion\":\"";
+    json += jsonEscape(cfg.appSoftwareVersion);
+    json += "\",\"port\":";
+    json += cfg.bacnetPort;
+    json += ",\"web\":";
+    json += cfg.webEnabled ? "true" : "false";
+    json += "}";
+    sendJson(200, json);
+}
+
+void handleSettingsPost()
+{
+    settings::Config &cfg = settings::get();
+    bool reboot = false;
+
+    /* --- Wi-Fi --------------------------------------------------------- */
+    if (g_server.hasArg("ssid")) {
+        const String ssid = g_server.arg("ssid");
+        const String pass = g_server.arg("pass");
+        const bool ssidChanged = ssid != String(cfg.wifiSsid);
+        if (ssidChanged) {
+            copyText(cfg.wifiSsid, sizeof(cfg.wifiSsid), ssid.c_str());
+            copyText(cfg.wifiPassword, sizeof(cfg.wifiPassword),
+                     pass.c_str());
+            reboot = true;
+        } else if (pass.length() > 0) {
+            copyText(cfg.wifiPassword, sizeof(cfg.wifiPassword),
+                     pass.c_str());
+            reboot = true;
+        }
+    }
+    if (g_server.hasArg("hostname")) {
+        const String value = g_server.arg("hostname");
+        if (value.length() > 0 && value != String(cfg.hostname)) {
+            copyText(cfg.hostname, sizeof(cfg.hostname), value.c_str());
+            reboot = true;
+        }
+    }
+    if (g_server.hasArg("static")) {
+        const uint8_t value = g_server.arg("static") == "1" ? 1 : 0;
+        if (value != cfg.useStaticIp) {
+            cfg.useStaticIp = value;
+            reboot = true;
+        }
+    }
+    if (g_server.hasArg("ip") && g_server.arg("ip") != String(cfg.staticIp)) {
+        copyText(cfg.staticIp, sizeof(cfg.staticIp),
+                 g_server.arg("ip").c_str());
+        reboot = true;
+    }
+    if (g_server.hasArg("gw") && g_server.arg("gw") != String(cfg.gateway)) {
+        copyText(cfg.gateway, sizeof(cfg.gateway),
+                 g_server.arg("gw").c_str());
+        reboot = true;
+    }
+    if (g_server.hasArg("mask") &&
+        g_server.arg("mask") != String(cfg.subnet)) {
+        copyText(cfg.subnet, sizeof(cfg.subnet),
+                 g_server.arg("mask").c_str());
+        reboot = true;
+    }
+    if (g_server.hasArg("dns") && g_server.arg("dns") != String(cfg.dns)) {
+        copyText(cfg.dns, sizeof(cfg.dns), g_server.arg("dns").c_str());
+        reboot = true;
+    }
+    if (g_server.hasArg("apPass")) {
+        copyText(cfg.apPassword, sizeof(cfg.apPassword),
+                 g_server.arg("apPass").c_str());
+    }
+
+    /* --- BACnet identity ---------------------------------------------- */
+    if (g_server.hasArg("instance")) {
+        const uint32_t value =
+            static_cast<uint32_t>(strtoul(g_server.arg("instance").c_str(),
+                                          nullptr, 10));
+        if (value <= 4194302u && value != cfg.deviceInstance) {
+            cfg.deviceInstance = value;
+            reboot = true;
+        }
+    }
+    if (g_server.hasArg("name") && g_server.arg("name").length() > 0) {
+        copyText(cfg.deviceName, sizeof(cfg.deviceName),
+                 g_server.arg("name").c_str());
+    }
+    if (g_server.hasArg("desc")) {
+        copyText(cfg.deviceDescription, sizeof(cfg.deviceDescription),
+                 g_server.arg("desc").c_str());
+    }
+    if (g_server.hasArg("location")) {
+        copyText(cfg.deviceLocation, sizeof(cfg.deviceLocation),
+                 g_server.arg("location").c_str());
+    }
+    if (g_server.hasArg("vendorId")) {
+        const long value = g_server.arg("vendorId").toInt();
+        if (value >= 0 && value <= 65535) {
+            cfg.vendorId = static_cast<uint16_t>(value);
+        }
+    }
+    if (g_server.hasArg("vendorName")) {
+        copyText(cfg.vendorName, sizeof(cfg.vendorName),
+                 g_server.arg("vendorName").c_str());
+    }
+    if (g_server.hasArg("model")) {
+        copyText(cfg.modelName, sizeof(cfg.modelName),
+                 g_server.arg("model").c_str());
+    }
+    if (g_server.hasArg("fw")) {
+        copyText(cfg.firmwareRevision, sizeof(cfg.firmwareRevision),
+                 g_server.arg("fw").c_str());
+    }
+    if (g_server.hasArg("app")) {
+        copyText(cfg.appSoftwareVersion, sizeof(cfg.appSoftwareVersion),
+                 g_server.arg("app").c_str());
+    }
+    if (g_server.hasArg("port")) {
+        const long value = g_server.arg("port").toInt();
+        if (value > 0 && value <= 65535 &&
+            static_cast<uint16_t>(value) != cfg.bacnetPort) {
+            cfg.bacnetPort = static_cast<uint16_t>(value);
+            reboot = true;
+        }
+    }
+    if (g_server.hasArg("web")) {
+        const uint8_t value = g_server.arg("web") == "1" ? 1 : 0;
+        cfg.webEnabled = value;
+    }
+
+    const bool saved = settings::save();
+    bacnet::applyDeviceIdentity();
+
+    String json = "{\"ok\":";
+    json += saved ? "true" : "false";
+    json += ",\"reboot\":";
+    json += reboot ? "true" : "false";
+    json += "}";
+    sendJson(saved ? 200 : 500, json);
+
+    if (reboot) {
+        rebootSoon(700);
+    }
+}
+
+void handlePoints()
+{
+    String json;
+    json.reserve(2600);
+    json += "{\"points\":[";
+
+    bool first = true;
+    const size_t count = bacnet::objectCount();
+    for (size_t i = 0; i < count; ++i) {
+        const bacnet::Object *object = bacnet::objectAt(i);
+        if (!object || object->type == bacnet::kObjectDevice) {
+            continue;
+        }
+        if (!first) {
+            json += ',';
+        }
+        first = false;
+
+        json += "{\"t\":";
+        json += object->type;
+        json += ",\"i\":";
+        json += static_cast<unsigned long>(object->instance);
+        json += ",\"k\":\"";
+        json += kindName(object->type);
+        json += "\",\"n\":\"";
+        json += jsonEscape(object->name);
+        json += "\",\"u\":";
+        json += object->isAnalog() ? object->units : bacnet::kUnitsNoUnits;
+        json += ",\"c\":";
+        json += object->isCommandable() ? 1 : 0;
+        json += ",\"v\":";
+        if (object->isAnalog()) {
+            json += String(object->presentValue, 3);
+        } else {
+            json += object->binaryPresentValue ? 1 : 0;
+        }
+
+        if (object->isCommandable()) {
+            json += ",\"rd\":";
+            if (object->isAnalog()) {
+                json += String(object->relinquishDefault, 3);
+            } else {
+                json += object->binaryRelinquishDefault ? 1 : 0;
+            }
+            json += ",\"pa\":[";
+            for (size_t p = 0; p < bacnet::kMaxPriority; ++p) {
+                if (p) {
+                    json += ',';
+                }
+                if (object->isAnalog()) {
+                    if (object->priorityActive[p]) {
+                        json += String(object->priority[p], 3);
+                    } else {
+                        json += "null";
+                    }
+                } else {
+                    if (object->binaryPriorityActive[p]) {
+                        json += object->binaryPriority[p] ? 1 : 0;
+                    } else {
+                        json += "null";
+                    }
+                }
+            }
+            json += "]";
+        }
+        json += "}";
+    }
+
+    json += "]}";
+    sendJson(200, json);
+}
+
+void handlePointWrite()
+{
+    if (!g_server.hasArg("type") || !g_server.hasArg("instance")) {
+        sendJson(400, "{\"ok\":false,\"class\":2,\"code\":32}");
+        return;
+    }
+
+    const uint16_t type =
+        static_cast<uint16_t>(g_server.arg("type").toInt());
+    const uint32_t instance =
+        static_cast<uint32_t>(strtoul(g_server.arg("instance").c_str(),
+                                      nullptr, 10));
+
+    bacnet::Object *object = bacnet::findObject(type, instance);
+    if (!object) {
+        sendJson(404, "{\"ok\":false,\"class\":1,\"code\":31}");
+        return;
+    }
+    if (!object->isCommandable()) {
+        sendJson(200, "{\"ok\":false,\"class\":2,\"code\":40}");
+        return;
+    }
+
+    bacnet::Value value;
+    const bool release =
+        g_server.hasArg("rel") && g_server.arg("rel") != "0";
+
+    if (release) {
+        value.type = bacnet::Value::Null;
+    } else if (object->isAnalog()) {
+        if (!g_server.hasArg("value")) {
+            sendJson(400, "{\"ok\":false,\"class\":2,\"code\":9}");
+            return;
+        }
+        value.type = bacnet::Value::Real;
+        value.real = g_server.arg("value").toFloat();
+        if (!isfinite(value.real)) {
+            sendJson(400, "{\"ok\":false,\"class\":2,\"code\":37}");
+            return;
+        }
+    } else {
+        const String text = g_server.arg("value");
+        value.type = bacnet::Value::Enumerated;
+        value.unsignedValue = (text == "0" || text.length() == 0) ? 0 : 1;
+    }
+
+    uint8_t priority = 0;
+    if (g_server.hasArg("priority")) {
+        const long p = g_server.arg("priority").toInt();
+        if (p >= 1 && p <= bacnet::kMaxPriority) {
+            priority = static_cast<uint8_t>(p);
+        }
+    }
+
+    uint16_t errorClass = 0;
+    uint32_t errorCode = 0;
+    const bool ok = bacnet::writeProperty(object, bacnet::kPropPresentValue,
+                                          false, 0, value, priority,
+                                          errorClass, errorCode);
+
+    String json = "{\"ok\":";
+    json += ok ? "true" : "false";
+    if (!ok) {
+        json += ",\"class\":";
+        json += errorClass;
+        json += ",\"code\":";
+        json += static_cast<unsigned long>(errorCode);
+    }
+    json += "}";
+    sendJson(200, json);
+}
+
+void handleReboot()
+{
+    sendJson(200, "{\"ok\":true,\"reboot\":true}");
+    rebootSoon(400);
+}
+
+void handleFactoryReset()
+{
+    const bool ok = settings::resetToDefaults();
+    String json = "{\"ok\":";
+    json += ok ? "true" : "false";
+    json += ",\"reboot\":true}";
+    sendJson(ok ? 200 : 500, json);
+    rebootSoon(600);
+}
+
+} // namespace
+
+/* ------------------------------------------------------------------------- */
+/* Public API                                                                */
+/* ------------------------------------------------------------------------- */
+void begin()
+{
+    if (g_started) {
+        return;
+    }
+
+    g_server.on("/", HTTP_GET, handleRoot);
+    g_server.on("/index.html", HTTP_GET, handleRoot);
+    g_server.on("/favicon.ico", HTTP_GET, handleFavicon);
+    g_server.on("/api/status", HTTP_GET, handleStatus);
+    g_server.on("/api/settings", HTTP_GET, handleSettingsGet);
+    g_server.on("/api/settings", HTTP_POST, handleSettingsPost);
+    g_server.on("/api/points", HTTP_GET, handlePoints);
+    g_server.on("/api/points/write", HTTP_POST, handlePointWrite);
+    g_server.on("/api/reboot", HTTP_POST, handleReboot);
+    g_server.on("/api/factory-reset", HTTP_POST, handleFactoryReset);
+    g_server.onNotFound(handleNotFound);
+
+    g_server.begin();
+    g_started = true;
+
+    Serial.printf("[Web] Configuration UI on port %u\n",
+                  static_cast<unsigned>(BACNET_WEB_PORT));
+}
+
+void run()
+{
+    if (!g_started) {
+        return;
+    }
+    g_server.handleClient();
+
+    if (g_restartAtMs != 0 &&
+        static_cast<int32_t>(millis() - g_restartAtMs) >= 0) {
+        Serial.println("[Web] Restarting...");
+        delay(50);
+        ESP.restart();
+    }
+}
+
+} // namespace webui

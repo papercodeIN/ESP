@@ -1,0 +1,287 @@
+# BACnet/IP Device — Seeed XIAO ESP32C3
+
+A complete, self-contained BACnet/IP device for the **Seeed Studio XIAO
+ESP32C3**, built with **PlatformIO only**. It speaks standard BACnet/IP on
+UDP 47808, so it appears in YABE and any other BACnet client, and it ships
+with a built-in web interface for setup and live monitoring — no recompiling
+to change Wi-Fi or the device instance.
+
+---
+
+## Features
+
+- **BACnet/IP (Annex J)** with BVLC Original-Unicast and Original-Broadcast
+- **Who-Is / I-Am** device discovery (with range filtering)
+- **ReadProperty**, **ReadPropertyMultiple**, **WriteProperty**
+- **SubscribeCOV** — clients subscribe once and are notified on every value
+  change (plus an immediate notification with the current value on
+  subscription)
+- Full **16-level priority arrays** on commandable points
+- Device, Analog Input/Value, Binary Input/Output/Value objects
+- **Web configuration UI**: Wi-Fi, static IP, device instance, name,
+  location, vendor data, ports, setup-AP password
+- **Live point page**: read every point, write commandable points, release
+  individual priorities
+- **Setup access point**: if no Wi-Fi is configured or the stored network
+  cannot be reached, the device opens an **open** (password-free)
+  `bacnet-...-XXXX` access point so you can always reach the UI at
+  <http://192.168.4.1>
+- Settings stored in NVS (flash), survive power cycles, factory reset button
+- mDNS host name, e.g. <http://bacnet-xiao-c3.local>
+- No cloud, no external assets, no dynamic allocation in the BACnet path
+
+## Hardware
+
+| Item | Value |
+| --- | --- |
+| Board | Seeed Studio XIAO ESP32C3 (4 MB flash, 320 KB RAM) |
+| BACnet transport | BACnet/IP over Wi-Fi |
+| BACnet UDP port | 47808 (0xBAC0) |
+| Demo output | BO 0 → D0 / GPIO2 |
+| Demo input | BI 1 → BOOT button / GPIO9 (active low) |
+
+## Getting started
+
+These steps take a brand-new board from bare metal to a visible BACnet
+device. If you have already flashed the firmware once, skip to step 5.
+
+### 1. What you need
+
+- A Seeed Studio XIAO ESP32C3 board and a USB-C **data** cable (not
+  charge-only)
+- Python 3.8 or newer on Windows, macOS or Linux
+- A 2.4 GHz Wi-Fi network (name and password) — the ESP32-C3 does not
+  support 5 GHz
+- A computer on the same network to open the web UI and run BACnet clients
+
+### 2. Get the code
+
+Clone or download this repository, then open a terminal in the
+`BACnet IP Device` folder.
+
+### 3. Install VS Code and the PlatformIO IDE extension
+
+1. Install [Visual Studio Code](https://code.visualstudio.com/) if you do
+   not have it yet, and [Python 3.8+](https://www.python.org/downloads/)
+   (on Windows, tick **Add python.exe to PATH** in the Python installer).
+2. In VS Code open the **Extensions** view (`Ctrl+Shift+X`), search for
+   **PlatformIO IDE** (publisher: `PlatformIO`) and install it. The
+   extension downloads PlatformIO Core on its first start — this takes a
+   few minutes and needs Python, which it will help you install if missing.
+3. **File → Open Folder…** and select the `BACnet IP Device` folder.
+   PlatformIO detects `platformio.ini` and imports the project
+   automatically.
+
+### 4. Build and flash in VS Code
+
+The PlatformIO sidebar (the insect icon in the Activity Bar) lists
+**PROJECT TASKS → env:seeed_xiao_esp32c3**:
+
+| Task | Where | What it does |
+| --- | --- | --- |
+| **Build** | Project Tasks → General → Build (or the `✓` button in the status bar) | compiles the firmware — works without a board |
+| **Upload** | Project Tasks → General → Upload (or the `→` button) | flashes the board over USB |
+| **Monitor** | Project Tasks → General → Monitor (or the plug button) | live serial log; 115200 baud is taken from `platformio.ini` |
+
+Every task can also be started from the command palette
+(`Ctrl+Shift+P` → *PlatformIO: Build*, *PlatformIO: Upload*,
+*PlatformIO: Serial Monitor*). Use **General → Upload and Monitor** to
+watch the boot log immediately after flashing.
+
+Notes:
+
+- The **first build** downloads the Espressif 32 platform and the RISC-V
+  toolchain (several hundred MB) and can take 10–20 minutes; later builds
+  finish in under a minute. The project pins `platform = espressif32@6.12.0`
+  (Arduino core 2.0.17), so builds are reproducible — a clean build reports
+  roughly 15 % RAM and 65 % of the 1.25 MB application partition used.
+- On Windows the XIAO ESP32C3 shows up as a COM port named
+  **USB Serial Device** — no extra driver is normally required.
+- If **Upload** cannot find a port, hold the **BOOT** button while plugging
+  in the USB cable (this puts the ESP32-C3 into its ROM bootloader) and
+  start Upload again.
+
+#### Command-line alternative
+
+Everything above also works from a plain terminal. If the `pio` command is
+not on your PATH (common in Git Bash), use:
+
+```bash
+python -m platformio run                        # build (works without a board)
+python -m platformio run -t upload              # flash over USB
+python -m platformio device monitor -b 115200   # live serial log
+```
+
+### 5. First boot
+
+The firmware ships with default Wi-Fi credentials in `src/bacnet_config.h`
+(`Capgemini_4G` / `MN704116` by default), so a fresh device joins that
+network automatically. The serial monitor confirms the connection:
+
+```
+[WiFi] Connecting to "Capgemini_4G"...
+[WiFi] Connected: 192.168.1.x (-60 dBm)
+[BACnet] Device 1234 ready on 192.168.1.x:47808
+```
+
+1. Connect your computer to the same network and open the device's IP from
+   the serial log, or use `http://bacnet-xiao-c3.local` (mDNS).
+2. **Network** tab: change the SSID/password any time, optionally set a
+   static IP, then **Save and restart**.
+3. **BACnet** tab: set the device instance (must be unique on your network),
+   name, location and vendor details.
+
+If the stored network cannot be reached within 25 seconds of boot, the
+device opens an **open** (no password) setup access point named
+`bacnet-xiao-c3-XXXX`. Join it and open <http://192.168.4.1> to configure
+the correct network — a wrong password never bricks the device.
+
+### 6. Verify it works
+
+- **YABE**: follow [Using YABE](#using-yabe) below — the device answers a
+  Who-Is within seconds and appears in the tree.
+- **No BACnet tools installed?** Run the bundled smoke test from the same
+  computer (Python only, no dependencies):
+  `python tools/bacnet_test.py --device 1234`.
+- The web **Points** tab shows live values and lets you write and release
+  commandable points without any BACnet client at all.
+
+## Web interface
+
+| Endpoint | Purpose |
+| --- | --- |
+| `GET /` | configuration and monitoring UI |
+| `GET /api/status` | Wi-Fi, IP, RSSI, uptime, heap, instance, port |
+| `GET /api/settings` | stored configuration as JSON |
+| `POST /api/settings` | update configuration (form encoded) |
+| `GET /api/points` | all points with present values and priority arrays |
+| `POST /api/points/write` | write a value / release a priority |
+| `POST /api/reboot` | restart |
+| `POST /api/factory-reset` | erase settings and restart into setup mode |
+
+The UI works entirely offline; the page is embedded in the firmware flash.
+
+## BACnet objects
+
+| Object | Instance | Description | Writable |
+| --- | --- | --- | --- |
+| Device | 1234 (configurable) | device identity | partially |
+| Analog Input | 0 | ESP32-C3 chip temperature (°C) | no |
+| Analog Input | 1 | Wi-Fi RSSI (dB) | no |
+| Analog Input | 2 | uptime (s) | no |
+| Analog Input | 3 | generated sine 0…100 % | no |
+| Analog Value | 0 | temperature setpoint, 5…35 °C | yes, priority array |
+| Analog Value | 1 | analog output 0…100 % | yes, priority array |
+| Binary Input | 0 | Wi-Fi connected | no |
+| Binary Input | 1 | BOOT button | no |
+| Binary Output | 0 | relay on GPIO2 | yes, priority array |
+| Binary Value | 0 | simulation enable | yes, priority array |
+
+Properties implemented per object: `object-identifier`, `object-name`,
+`object-type`, `description`, `present-value`, `status-flags`,
+`event-state`, `reliability`, `out-of-service`, `units`, `cov-increment`,
+`min/max-pres-value`, `resolution`, `priority-array`,
+`relinquish-default`, `polarity`, `active-text`, `inactive-text`,
+`time-delay`, `event-enable`, `acked-transitions`, `notify-type`,
+`property-list`. The Device object also exposes `object-list`,
+`vendor-*`, `model-name`, `firmware-revision`,
+`application-software-version`, `protocol-version`,
+`protocol-revision`, `protocol-object-types-supported`,
+`protocol-services-supported`, `max-apdu-length-accepted`,
+`segmentation-supported`, `apdu-timeout`, `number-of-apdu-retries`,
+`device-address-binding`, `database-revision` and `system-status`.
+
+## Using YABE
+
+1. Connect the PC to the same subnet as the device.
+2. Start YABE, set the local port to `47808` (or any free port) and add a
+   broadcast address, e.g. `192.168.1.255/24`.
+3. Press **Who-Is**. The device answers with an I-Am and appears in the tree.
+4. Read any point. To command AV 0 / BO 0, right-click the point, choose
+   **Write Property**, enter the value and the priority (8 is a good default).
+
+Point writes over BACnet and over the web UI use the same priority arrays, so
+a value written from YABE is visible on the Points page immediately.
+
+Priority notes (per ASHRAE 135): a WriteProperty without a priority writes
+at priority 16 (the lowest), and priority 6 is reserved for the Minimum
+On/Off algorithm — writes at priority 6 are rejected with
+write-access-denied.
+
+## Command-line smoke test
+
+`tools/bacnet_test.py` needs only the Python standard library:
+
+```bash
+python tools/bacnet_test.py                    # discover + full test
+python tools/bacnet_test.py --device 1234      # expect a specific instance
+python tools/bacnet_test.py --host 192.168.1.50
+```
+
+It checks discovery, device properties, analog/binary reads, a
+priority-8 write, a NULL release with fallback to the relinquish default,
+ReadPropertyMultiple, and a COV subscription (SubscribeCOV + a pushed
+change-of-value notification).
+
+### Network sniffer
+
+`tools/bacnet_sniffer.py` listens on UDP 47808 and prints every BACnet/IP
+packet with its source address, then a per-IP summary — use it to find a
+client that floods a shared network with requests (close YABE first; only
+one program can own the port):
+
+```bash
+python tools/bacnet_sniffer.py --seconds 30
+```
+
+## Project layout
+
+```
+platformio.ini          PlatformIO environment (seeed_xiao_esp32c3)
+src/
+  pio_entry.cpp         setup()/loop()
+  app.cpp               Wi-Fi, setup AP, mDNS, server lifecycle
+  bacnet_config.h       compile-time defaults (first boot only)
+  bacnet_settings.h/.cpp persistent settings in NVS
+  bacnet_types.h        BACnet constants and value containers
+  bacnet_encoding.h/.cpp tag encoding/decoding
+  bacnet_objects.h/.cpp object database, properties, priority arrays, I/O
+  bacnet_server.h/.cpp  BACnet/IP, NPDU/APDU, RP/RPM/WP services
+  bacnet_web.h/.cpp     HTTP API and configuration handlers
+  web_page.h            embedded single-page UI
+tools/bacnet_test.py    dependency-free BACnet/IP test client
+```
+
+## Configuration notes
+
+- `src/bacnet_config.h` seeds the defaults on first boot and after a factory
+  reset. After that, everything is configured in the web UI.
+- The default Wi-Fi credentials (`Capgemini_4G` / `MN704116`) are compiled
+  into the firmware binary — convenient for the lab, but switch to empty
+  defaults and configure over the setup access point before shipping a
+  device or publishing the binary.
+- Radio settings for BACnet stability: Wi-Fi modem sleep is disabled and
+  TX power is pinned at the ESP32-C3 maximum (19.5 dBm). Remaining signal
+  gains are physical: antenna routing/placement, distance to the router,
+  and a clean 2.4 GHz path. Watch the Signal row on the Status tab
+  (also BACnet point AI:1) — aim for −75 dBm or better.
+- **Vendor ID 999 is the BACnet test/development ID.** Request a real vendor
+  ID from ASHRAE before shipping a product.
+- The device does not route, does not support segmented requests and accepts
+  APDUs up to 1476 bytes.
+- Adding a point: add an entry to `g_objects[]` in `src/bacnet_objects.cpp`,
+  then set its name/units/limits in `initObjects()`.
+
+## Troubleshooting
+
+| Symptom | Check |
+| --- | --- |
+| No setup AP | Serial log at 115200 baud; board powered and flashed |
+| Serial monitor shows nothing | Stop the monitor, unplug/replug the USB cable, reopen it and pick the `USB Serial Device` COM port. Output printed before the monitor attached is not replayed, and the device logs only on events — a quiet console in setup mode is normal |
+| Boot loop: `assert failed: tcpip_send_msg_wait_sem (Invalid mbox)` | Firmware 1.0.0 started the web server before the Wi-Fi stack was up; upload the fixed firmware (1.0.1 or later). The `nvs_get_blob ... cfg NOT_FOUND` line on a fresh device is harmless |
+| YABE: `Communication Error: Couldn't fetch properties` | Check the Signal row on the Status tab (or read AI:1): below −75 dBm the link is marginal — move the device closer to the router. Firmware 1.0.3+ disables Wi-Fi modem sleep for BACnet latency. Also remove the device from the YABE tree and re-run Who-Is after its IP changes |
+| Compiled-in defaults (Wi-Fi, AP password) not taking effect | Stored settings always override `src/bacnet_config.h` — do a Factory reset from the web UI Maintenance card to pick up new defaults |
+| Web UI unreachable | Correct IP on the Status tab, port 80 free, same subnet |
+| No I-Am in YABE | UDP 47808 not blocked, client and device on same subnet/VLAN |
+| Device missing after reboot | Instance changed? Re-run Who-Is; check serial log |
+| Write rejected | Point not commandable, value outside min/max, or bad priority |

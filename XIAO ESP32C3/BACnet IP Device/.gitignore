@@ -1,0 +1,21 @@
+# PlatformIO
+.pio/
+.pioenvs/
+.piolibdeps/
+
+# Editors / tooling
+.vscode/
+.idea/
+compile_commands.json
+.cppcheck/
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+
+# Build logs
+build.log
+
+# Python
+__pycache__/
+*.pyc
