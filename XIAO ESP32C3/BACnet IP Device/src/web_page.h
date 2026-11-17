@@ -15,134 +15,190 @@ static const char kWebIndexHtml[] PROGMEM = R"rawliteral(<!doctype html>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>BACnet/IP Device</title>
 <style>
-:root{--bg:#0f1820;--card:#16222c;--line:#243544;--txt:#e6eef5;--dim:#8aa0b2;--accent:#31c48d;--warn:#f6a723;--bad:#ef5350}
+:root{--bg:#0a0f14;--panel:#10171f;--panel2:#0b1218;--line:#1e2a35;--line2:#2a3a49;--txt:#dde7ef;--dim:#8298aa;--faint:#5d7182;--accent:#35d0a5;--warn:#e8a33d;--bad:#e5534b;--mono:ui-monospace,"Cascadia Mono",Consolas,Menlo,monospace}
 *{box-sizing:border-box}
-body{margin:0;font:15px/1.5 system-ui,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--txt)}
-header{display:flex;align-items:center;gap:12px;padding:16px 20px;background:linear-gradient(180deg,#182634,#111c25);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
-h1{font-size:17px;margin:0;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.pill{margin-left:auto;flex:none;font-size:12px;padding:4px 10px;border-radius:999px;background:#22323f;color:var(--dim)}
-.pill.ok{background:rgba(49,196,141,.15);color:var(--accent)}
-.pill.ap{background:rgba(246,167,35,.15);color:var(--warn)}
-nav{display:flex;gap:6px;padding:10px 16px;overflow-x:auto;border-bottom:1px solid var(--line);background:#111c25;position:sticky;top:57px;z-index:4}
-nav button{background:transparent;color:var(--dim);border:1px solid transparent;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:14px;white-space:nowrap}
-nav button.active{color:var(--txt);background:#1c2b37;border-color:var(--line)}
-main{padding:16px;max-width:980px;margin:0 auto 40px}
+body{margin:0;font:14px/1.45 system-ui,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--txt)}
+.topbar{position:sticky;top:0;z-index:5;background:linear-gradient(180deg,#121b25,#0c131b);border-bottom:1px solid var(--line)}
+header{display:flex;align-items:center;gap:16px;padding:10px 18px}
+.brand{min-width:0}
+.brand .tag{font-size:10px;letter-spacing:.16em;color:var(--faint);text-transform:uppercase;white-space:nowrap}
+h1{font-size:15px;margin:2px 0 0;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hmetrics{display:flex;gap:22px;margin-left:auto;flex:none}
+.hm{text-align:right}
+.hm .k{font-size:9.5px;letter-spacing:.12em;color:var(--faint);text-transform:uppercase}
+.hm .v{font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums;color:var(--txt);margin-top:1px}
+.chip{flex:none;display:inline-flex;align-items:center;gap:7px;font-size:12px;padding:5px 12px;border-radius:999px;border:1px solid var(--line2);background:#152029;color:var(--dim)}
+.chip.ok{border-color:rgba(53,208,165,.4);background:rgba(53,208,165,.08);color:var(--accent)}
+.chip.ap{border-color:rgba(232,163,61,.4);background:rgba(232,163,61,.08);color:var(--warn)}
+.chip.bad{border-color:rgba(229,83,75,.4);background:rgba(229,83,75,.08);color:var(--bad)}
+.led{width:8px;height:8px;border-radius:50%;background:#3a4c5c;flex:none}
+.led.ok{background:var(--accent);box-shadow:0 0 7px rgba(53,208,165,.75)}
+.led.ap{background:var(--warn);box-shadow:0 0 7px rgba(232,163,61,.75)}
+.led.bad{background:var(--bad);box-shadow:0 0 7px rgba(229,83,75,.75)}
+nav{display:flex;gap:6px;padding:4px 14px;overflow-x:auto}
+nav button{background:transparent;color:var(--dim);border:0;border-bottom:2px solid transparent;padding:8px 12px;cursor:pointer;font-size:13px;white-space:nowrap;letter-spacing:.02em}
+nav button:hover{color:var(--txt)}
+nav button.active{color:var(--txt);border-bottom-color:var(--accent)}
+main{padding:16px 18px 30px;max-width:1120px;margin:0 auto}
 section{display:none}
 section.active{display:block}
-.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px}
-h2{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);margin:0 0 12px}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:0 18px}
-.row{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px dashed #22323d;font-size:14px}
+.card{background:linear-gradient(180deg,#101820,#0d141b);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:14px}
+h2{display:flex;align-items:center;gap:8px;font-size:11px;text-transform:uppercase;letter-spacing:.14em;color:var(--dim);margin:0 0 10px;font-weight:600}
+h2::before{content:"";width:3px;height:11px;background:var(--accent);border-radius:1px;flex:none}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:0 20px}
+.row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:6px 0;border-bottom:1px solid #16212b;font-size:13px}
 .row:last-child{border-bottom:0}
 .row span:first-child{color:var(--dim)}
-label{display:block;font-size:12px;color:var(--dim);margin-bottom:4px}
-input,select{width:100%;padding:9px 10px;border-radius:8px;border:1px solid var(--line);background:#0d151c;color:var(--txt);font-size:14px;font-family:inherit}
-input[type=checkbox]{width:auto;margin-right:8px}
-.field{margin-bottom:12px}
-.inline{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--dim);margin-bottom:12px}
+.row .v{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:12.5px;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:60%}
+label{display:block;font-size:11px;color:var(--dim);margin-bottom:4px;letter-spacing:.04em}
+input,select{width:100%;padding:8px 10px;border-radius:6px;border:1px solid var(--line);background:#0a1118;color:var(--txt);font-size:13px;font-family:inherit}
+input:focus,select:focus{outline:0;border-color:var(--accent)}
+input[type=checkbox]{width:auto;accent-color:var(--accent)}
+.field{margin-bottom:10px}
+.inline{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--dim);margin-bottom:10px}
 button{font-family:inherit}
-button.primary{background:var(--accent);color:#06231a;border:0;padding:10px 18px;border-radius:8px;font-weight:600;cursor:pointer;font-size:14px}
-button.ghost{background:#22323f;color:var(--txt);border:1px solid var(--line);padding:8px 14px;border-radius:8px;cursor:pointer;font-size:13px}
-button.danger{background:transparent;color:var(--bad);border:1px solid var(--bad);padding:8px 14px;border-radius:8px;cursor:pointer;font-size:13px}
-button.small{padding:5px 10px;font-size:12px}
+button.primary{background:var(--accent);color:#04231a;border:0;padding:9px 16px;border-radius:6px;font-weight:600;cursor:pointer;font-size:13px}
+button.primary:hover{filter:brightness(1.08)}
+button.ghost{background:#16222d;color:var(--txt);border:1px solid var(--line2);padding:7px 13px;border-radius:6px;cursor:pointer;font-size:13px}
+button.ghost:hover{border-color:#3a4f61}
+button.danger{background:transparent;color:var(--bad);border:1px solid rgba(229,83,75,.5);padding:7px 13px;border-radius:6px;cursor:pointer;font-size:13px}
+button.danger:hover{background:rgba(229,83,75,.08)}
+button.small{padding:4px 9px;font-size:12px}
 table{width:100%;border-collapse:collapse;font-size:13px}
-th,td{padding:8px 6px;text-align:left;border-bottom:1px solid #22323d;white-space:nowrap}
-th{color:var(--dim);font-weight:500;font-size:12px;text-transform:uppercase;letter-spacing:.04em}
-td input,td select{padding:5px 6px;font-size:13px;min-width:70px}
-#toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,20px);background:#1f3340;border:1px solid var(--line);padding:10px 18px;border-radius:10px;opacity:0;transition:.25s;pointer-events:none;z-index:20;max-width:90vw}
+th,td{padding:7px 8px;text-align:left;border-bottom:1px solid #16212b;white-space:nowrap}
+th{color:var(--faint);font-weight:600;font-size:10.5px;text-transform:uppercase;letter-spacing:.1em}
+tbody tr:hover{background:rgba(255,255,255,.02)}
+td input,td select{padding:5px 7px;font-size:12.5px;min-width:70px}
+#toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,20px);background:#17232e;border:1px solid var(--line2);padding:10px 18px;border-radius:8px;opacity:0;transition:.25s;pointer-events:none;z-index:20;max-width:90vw;font-size:13px}
 #toast.show{opacity:1;transform:translate(-50%,0)}
 .muted{color:var(--dim);font-size:12px}
-.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
-code{background:#0d151c;border:1px solid var(--line);padding:1px 6px;border-radius:5px;font-size:12px}
+.actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+code{background:#0a1118;border:1px solid var(--line);padding:1px 6px;border-radius:4px;font-size:11.5px;font-family:var(--mono);color:#b9cbda}
+.stgrid{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:14px;align-items:start}
+.stgrid .card{margin-bottom:0}
+.two{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:14px;align-items:start}
+.two .card{margin-bottom:0}
+.maint{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.maint .muted{margin:4px 0 0}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.tile{background:#0b1218;border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.tile .tk{display:flex;align-items:center;gap:7px;font-size:10.5px;letter-spacing:.1em;color:var(--faint);text-transform:uppercase;font-weight:600}
+.tile .tv{font-family:var(--mono);font-size:19px;margin-top:6px;color:var(--txt);font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tile .tv .u{font-size:11.5px;color:var(--dim);margin-left:3px}
+.tile .tn{font-size:11px;color:var(--dim);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(max-width:920px){.stgrid,.two{grid-template-columns:1fr}.hmetrics .hm.opt{display:none}}
+@media(max-width:640px){.hmetrics{display:none}}
 </style>
 </head>
 <body>
-<header><h1 id="devname">BACnet/IP Device</h1><span class="pill" id="conn">loading</span></header>
+<div class="topbar">
+<header>
+  <div class="brand"><div class="tag">BACnet/IP Field Device</div><h1 id="devname">BACnet/IP Device</h1></div>
+  <div class="hmetrics">
+    <div class="hm"><div class="k">IP</div><div class="v" id="hm-ip">-</div></div>
+    <div class="hm opt"><div class="k">Signal</div><div class="v" id="hm-rssi">-</div></div>
+    <div class="hm opt"><div class="k">Uptime</div><div class="v" id="hm-up">-</div></div>
+    <div class="hm opt"><div class="k">Memory</div><div class="v" id="hm-heap">-</div></div>
+  </div>
+  <span class="chip" id="conn">loading</span>
+</header>
 <nav>
 <button class="active" data-tab="status">Status</button>
 <button data-tab="network">Network</button>
 <button data-tab="device">BACnet</button>
 <button data-tab="points">Points</button>
 </nav>
+</div>
 <main>
 
 <section id="tab-status" class="active">
-  <div class="card">
-    <h2>Device</h2>
-    <div class="grid">
-      <div>
-        <div class="row"><span>Mode</span><span id="s-mode">-</span></div>
-        <div class="row"><span>Wi-Fi</span><span id="s-ssid">-</span></div>
-        <div class="row"><span>IP address</span><span id="s-ip">-</span></div>
-        <div class="row"><span>Signal</span><span id="s-rssi">-</span></div>
+  <div class="stgrid">
+    <div class="card">
+      <h2>Device</h2>
+      <div class="grid">
+        <div>
+          <div class="row"><span>Mode</span><span class="v" id="s-mode">-</span></div>
+          <div class="row"><span>Wi-Fi</span><span class="v" id="s-ssid">-</span></div>
+          <div class="row"><span>IP address</span><span class="v" id="s-ip">-</span></div>
+          <div class="row"><span>Signal</span><span class="v" id="s-rssi">-</span></div>
+          <div class="row"><span>Host name</span><span class="v" id="s-host">-</span></div>
+        </div>
+        <div>
+          <div class="row"><span>Device instance</span><span class="v" id="s-instance">-</span></div>
+          <div class="row"><span>BACnet port</span><span class="v" id="s-port">-</span></div>
+          <div class="row"><span>Firmware</span><span class="v" id="s-fw">-</span></div>
+          <div class="row"><span>Uptime</span><span class="v" id="s-uptime">-</span></div>
+          <div class="row"><span>Free memory</span><span class="v" id="s-heap">-</span></div>
+        </div>
       </div>
-      <div>
-        <div class="row"><span>Device instance</span><span id="s-instance">-</span></div>
-        <div class="row"><span>BACnet port</span><span id="s-port">-</span></div>
-        <div class="row"><span>Firmware</span><span id="s-fw">-</span></div>
-        <div class="row"><span>Uptime</span><span id="s-uptime">-</span></div>
-        <div class="row"><span>Free memory</span><span id="s-heap">-</span></div>
-      </div>
+      <p class="muted" style="margin:10px 0 0">Discovery works from YABE and any BACnet/IP client on the same subnet. This page is also reachable at <code id="s-url">-</code></p>
     </div>
-    <p class="muted" style="margin-top:12px">Open this page at <code id="s-url">-</code>. Discovery works from YABE and any BACnet/IP client on the same subnet.</p>
+    <div class="card">
+      <h2>Live values</h2>
+      <div id="live" class="muted">Loading...</div>
+    </div>
   </div>
-  <div class="card">
-    <h2>Live values</h2>
-    <div id="live" class="muted">Loading...</div>
-  </div>
-  <div class="card">
-    <h2>Maintenance</h2>
+  <div class="card maint">
+    <div>
+      <h2>Maintenance</h2>
+      <p class="muted">Factory reset erases Wi-Fi and BACnet settings and starts the setup access point.</p>
+    </div>
     <div class="actions">
       <button class="ghost" onclick="rebootDevice()">Restart device</button>
       <button class="danger" onclick="factoryReset()">Factory reset</button>
     </div>
-    <p class="muted" style="margin-top:10px">Factory reset erases Wi-Fi and BACnet settings and starts the setup access point.</p>
   </div>
 </section>
 
 <section id="tab-network">
   <div class="card">
     <h2>Wi-Fi network</h2>
-    <div class="field"><label>Network name (SSID)</label><input id="f-ssid" maxlength="32" autocomplete="off"></div>
-    <div class="field"><label>Password</label><input id="f-pass" type="password" maxlength="64" autocomplete="new-password" placeholder="Leave empty to keep the current password"></div>
-    <div class="field"><label>Host name (mDNS)</label><input id="f-host" maxlength="32"><span class="muted">The UI is also reachable at <code>http://HOSTNAME.local</code></span></div>
-    <div class="inline"><input id="f-static" type="checkbox"><label for="f-static" style="margin:0">Use a fixed IP address</label></div>
     <div class="grid">
-      <div class="field"><label>IP address</label><input id="f-ip" maxlength="15"></div>
-      <div class="field"><label>Gateway</label><input id="f-gw" maxlength="15"></div>
-      <div class="field"><label>Subnet mask</label><input id="f-mask" maxlength="15"></div>
-      <div class="field"><label>DNS server</label><input id="f-dns" maxlength="15"></div>
+      <div>
+        <div class="field"><label>Network name (SSID)</label><input id="f-ssid" maxlength="32" autocomplete="off"></div>
+        <div class="field"><label>Password</label><input id="f-pass" type="password" maxlength="64" autocomplete="new-password" placeholder="Leave empty to keep the current password"></div>
+        <div class="field"><label>Host name (mDNS)</label><input id="f-host" maxlength="32"><span class="muted">The UI is also reachable at <code>http://HOSTNAME.local</code></span></div>
+      </div>
+      <div>
+        <div class="inline"><input id="f-static" type="checkbox"><label for="f-static" style="margin:0">Use a fixed IP address</label></div>
+        <div class="field"><label>IP address</label><input id="f-ip" maxlength="15"></div>
+        <div class="field"><label>Gateway</label><input id="f-gw" maxlength="15"></div>
+        <div class="field"><label>Subnet mask</label><input id="f-mask" maxlength="15"></div>
+        <div class="field"><label>DNS server</label><input id="f-dns" maxlength="15"></div>
+      </div>
     </div>
-    <div class="field"><label>Setup access point password</label><input id="f-appass" maxlength="64" placeholder="Empty = open network"></div>
+    <div class="field" style="max-width:420px"><label>Setup access point password</label><input id="f-appass" maxlength="64" placeholder="Empty = open network"></div>
     <div class="actions"><button class="primary" onclick="saveNetwork()">Save and restart</button></div>
-    <p class="muted" style="margin-top:10px">If the device cannot join the network it starts its own access point so you can always reach this page at <code>http://192.168.4.1</code>.</p>
+    <p class="muted" style="margin:10px 0 0">If the device cannot join the network it starts its own access point so you can always reach this page at <code>http://192.168.4.1</code>.</p>
   </div>
 </section>
 
 <section id="tab-device">
-  <div class="card">
-    <h2>BACnet identity</h2>
-    <div class="grid">
-      <div class="field"><label>Device instance</label><input id="f-instance" type="number" min="0" max="4194302"></div>
-      <div class="field"><label>Device name</label><input id="f-name" maxlength="63"></div>
-      <div class="field"><label>Location</label><input id="f-location" maxlength="31"></div>
-      <div class="field"><label>Vendor ID</label><input id="f-vendorid" type="number" min="0" max="65535"></div>
-      <div class="field"><label>Vendor name</label><input id="f-vendorname" maxlength="47"></div>
-      <div class="field"><label>Model name</label><input id="f-model" maxlength="47"></div>
-      <div class="field"><label>Firmware revision</label><input id="f-fw" maxlength="15"></div>
-      <div class="field"><label>Application version</label><input id="f-app" maxlength="15"></div>
+  <div class="two">
+    <div class="card">
+      <h2>BACnet identity</h2>
+      <div class="grid">
+        <div class="field"><label>Device instance</label><input id="f-instance" type="number" min="0" max="4194302"></div>
+        <div class="field"><label>Device name</label><input id="f-name" maxlength="63"></div>
+        <div class="field"><label>Location</label><input id="f-location" maxlength="31"></div>
+        <div class="field"><label>Vendor ID</label><input id="f-vendorid" type="number" min="0" max="65535"></div>
+        <div class="field"><label>Vendor name</label><input id="f-vendorname" maxlength="47"></div>
+        <div class="field"><label>Model name</label><input id="f-model" maxlength="47"></div>
+        <div class="field"><label>Firmware revision</label><input id="f-fw" maxlength="15"></div>
+        <div class="field"><label>Application version</label><input id="f-app" maxlength="15"></div>
+      </div>
+      <div class="field"><label>Description</label><input id="f-desc" maxlength="79"></div>
+      <div class="actions"><button class="primary" onclick="saveDevice()">Save and restart</button></div>
     </div>
-    <div class="field"><label>Description</label><input id="f-desc" maxlength="79"></div>
-  </div>
-  <div class="card">
-    <h2>Services</h2>
-    <div class="grid">
-      <div class="field"><label>BACnet/IP UDP port</label><input id="f-port" type="number" min="1" max="65535"></div>
-      <div class="field"><label>Web interface port</label><input value="80" disabled></div>
+    <div class="card">
+      <h2>Services</h2>
+      <div class="grid">
+        <div class="field"><label>BACnet/IP UDP port</label><input id="f-port" type="number" min="1" max="65535"></div>
+        <div class="field"><label>Web interface port</label><input value="80" disabled></div>
+      </div>
+      <div class="inline"><input id="f-web" type="checkbox"><label for="f-web" style="margin:0">Enable the web interface on the local network</label></div>
+      <p class="muted" style="margin:0 0 12px">The device answers Who-Is, ReadProperty, ReadPropertyMultiple, WriteProperty and SubscribeCOV (change-of-value notifications). Change the UDP port only if your site requires it (default 47808 / 0xBAC0).</p>
     </div>
-    <div class="inline"><input id="f-web" type="checkbox"><label for="f-web" style="margin:0">Enable the web interface on the local network</label></div>
-    <div class="actions"><button class="primary" onclick="saveDevice()">Save and restart</button></div>
-    <p class="muted" style="margin-top:10px">The device answers Who-Is, ReadProperty, ReadPropertyMultiple, WriteProperty and SubscribeCOV (change-of-value notifications). Change the UDP port only if your site requires it (default 47808 / 0xBAC0).</p>
   </div>
 </section>
 
@@ -170,6 +226,7 @@ function $(s){return document.querySelector(s);}
 function unit(u){return UNITS[u]!==undefined?UNITS[u]:"";}
 function fmt(v,d){if(typeof v!=="number")return String(v);var f=Math.pow(10,d===undefined?1:d);return String(Math.round(v*f)/f);}
 function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c];});}
+function fmtUptime(s){s=Math.max(0,Math.floor(s||0));var d=Math.floor(s/86400),h=Math.floor(s%86400/3600),m=Math.floor(s%3600/60),x=s%60,p=function(n){return(n<10?"0":"")+n;};return(d?d+"d ":"")+p(h)+":"+p(m)+":"+p(x);}
 function toast(msg){var t=$("#toast");t.textContent=msg;t.className="show";clearTimeout(t._timer);t._timer=setTimeout(function(){t.className="";},2800);}
 
 Array.prototype.forEach.call(document.querySelectorAll("nav button"),function(b){
@@ -190,16 +247,22 @@ function loadStatus(){
   return api("/api/status").then(function(s){
     $("#devname").textContent=s.name+" \u00b7 device "+s.instance;
     var c=$("#conn");
-    c.textContent=s.portal?"Setup AP":(s.connected?"Online":"Offline");
-    c.className="pill "+(s.portal?"ap":(s.connected?"ok":""));
+    var state=s.portal?"ap":(s.connected?"ok":"bad");
+    c.innerHTML='<span class="led '+state+'"></span>'+(s.portal?"Setup AP":(s.connected?"Online":"Offline"));
+    c.className="chip "+state;
+    $("#hm-ip").textContent=s.ip||"-";
+    $("#hm-rssi").textContent=s.connected?s.rssi+" dBm":"--";
+    $("#hm-up").textContent=fmtUptime(s.uptime);
+    $("#hm-heap").textContent=Math.round(s.heap/1024)+" KB";
     $("#s-mode").textContent=s.mode;
     $("#s-ssid").textContent=s.ssid||"-";
     $("#s-ip").textContent=s.ip||"-";
     $("#s-rssi").textContent=s.connected?s.rssi+" dBm":"-";
+    $("#s-host").textContent=s.hostname?"http://"+s.hostname+".local":"-";
     $("#s-instance").textContent=s.instance;
     $("#s-port").textContent=s.port+" (UDP)";
     $("#s-fw").textContent=s.firmware;
-    $("#s-uptime").textContent=s.uptime+" s";
+    $("#s-uptime").textContent=fmtUptime(s.uptime);
     $("#s-heap").textContent=Math.round(s.heap/1024)+" KB";
     $("#s-url").textContent=s.portal?"http://192.168.4.1/":"http://"+(s.ip||"device")+"/";
   });
@@ -207,9 +270,17 @@ function loadStatus(){
 
 function renderLive(){
   var box=$("#live");
-  if(!POINTS.length){box.textContent="No points.";return;}
+  if(!POINTS.length){box.className="muted";box.textContent="No points.";return;}
+  box.className="tiles";
   box.innerHTML=POINTS.map(function(p){
-    return '<div class="row"><span>'+p.k+':'+p.i+' \u00b7 '+esc(p.n)+'</span><span>'+fmt(p.v)+" "+unit(p.u)+'</span></div>';
+    var binary=(p.k==="BI"||p.k==="BO"||p.k==="BV");
+    var on=binary?(p.v!==0):true;
+    var val=binary?(p.v?"ACTIVE":"INACTIVE"):fmt(p.v,1)+'<span class="u">'+unit(p.u)+'</span>';
+    return '<div class="tile">'+
+           '<div class="tk"><span class="led '+(on?"ok":"")+'"></span>'+p.k+':'+p.i+'</div>'+
+           '<div class="tv">'+val+'</div>'+
+           '<div class="tn" title="'+esc(p.n)+'">'+esc(p.n)+'</div>'+
+           '</div>';
   }).join("");
 }
 
