@@ -1,0 +1,34 @@
+{
+    "name": "open62541",
+    "version": "1.4.22",
+    "description": "open62541 OPC UA (IEC 62541) stack, amalgamated distribution, patched for ESP32/Arduino + lwIP",
+    "license": "MPL-2.0",
+    "homepage": "https://www.open62541.org",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/open62541/open62541"
+    },
+    "authors": {
+        "name": "open62541 contributors",
+        "url": "https://github.com/open62541/open62541/blob/master/AUTHORS"
+    },
+    "frameworks": "arduino",
+    "platforms": "espressif32",
+    "build": {
+        "flags": [
+            "-Iinclude",
+            "-Wno-unused-function",
+            "-Wno-unused-variable",
+            "-Wno-unused-parameter",
+            "-Wno-sign-compare",
+            "-Wno-missing-field-initializers",
+            "-Wno-format-truncation",
+            "-Wno-stringop-truncation",
+            "-Wno-pedantic",
+            "-Wno-old-style-definition"
+        ],
+        "srcFilter": [
+            "+<open62541.c>"
+        ]
+    }
+}
