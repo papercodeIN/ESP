@@ -2,8 +2,8 @@
 #include <ModbusIP_ESP8266.h>
 #include <FastLED.h>
 
-const char* ssid = "Capgemini_4G";
-const char* password = "MN704116";
+const char* ssid = "YOUR_WIFI_SSID";
+const char* password = "YOUR_WIFI_PASSWORD";
 
 #define LED_PIN 5 // Change to your LED pin
 #define NUM_LEDS 10 // Number of LEDs

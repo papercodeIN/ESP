@@ -1,8 +1,8 @@
 #include <ESP8266WiFi.h>
 #include <ModbusIP_ESP8266.h>
 
-const char* ssid = "Capgemini_4G";
-const char* password = "MN704116";
+const char* ssid = "YOUR_WIFI_SSID";
+const char* password = "YOUR_WIFI_PASSWORD";
 
 ModbusIP mb;
 
