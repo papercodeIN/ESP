@@ -2,8 +2,8 @@
 #include <ModbusIP_ESP8266.h>
 #include <PubSubClient.h>
 
-const char* ssid = "Capgemini_4G";
-const char* password = "MN704116";
+const char* ssid = "YOUR_WIFI_SSID";
+const char* password = "YOUR_WIFI_PASSWORD";
 
 const char* mqtt_server = "192.168.1.7";
 const int mqtt_port = 1883; // Default MQTT port

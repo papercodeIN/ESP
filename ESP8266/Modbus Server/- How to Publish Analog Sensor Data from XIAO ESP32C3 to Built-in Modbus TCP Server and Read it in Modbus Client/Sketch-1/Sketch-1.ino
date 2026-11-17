@@ -7,7 +7,7 @@ ModbusIP mb;
 
 void setup() {
   Serial.begin(115200);
-  WiFi.begin("Capgemini_4G", "MN704116");
+  WiFi.begin("YOUR_WIFI_SSID", "YOUR_WIFI_PASSWORD");
   while (WiFi.status() != WL_CONNECTED) {
     delay(1000);
     Serial.println("Connecting to WiFi...");

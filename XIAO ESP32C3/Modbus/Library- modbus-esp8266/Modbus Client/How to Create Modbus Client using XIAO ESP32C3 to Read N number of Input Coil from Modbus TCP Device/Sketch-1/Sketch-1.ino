@@ -1,8 +1,8 @@
 #include <WiFi.h>
 #include <ModbusIP_ESP8266.h>
 
-const char* ssid = "Capgemini_4G";
-const char* password = "MN704116";
+const char* ssid = "YOUR_WIFI_SSID";
+const char* password = "YOUR_WIFI_PASSWORD";
 
 IPAddress remote(192, 168, 1, 7);  // Address of Modbus Slave device
 const int START_INPUT = 0;           // Starting input address
