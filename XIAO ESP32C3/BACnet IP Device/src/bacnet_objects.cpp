@@ -21,10 +21,59 @@ namespace {
 /* The built-in points occupy the first kBuiltinCount slots. Additional GPIO
  * points configured from the web UI are appended after them at boot. */
 constexpr size_t kBuiltinCount = 11;
-constexpr size_t kMaxObjectCount = kBuiltinCount + settings::kMaxGpioPoints;
+constexpr size_t kMaxObjectCount = kBuiltinCount + settings::kMaxGpioPoints +
+                                   settings::kMaxMemoryPoints;
 
 Object g_objects[kMaxObjectCount];
 size_t g_objectCount = kBuiltinCount;
+uint32_t g_memorySaveDueMs = 0;
+
+void markMemoryDirty(const Object *object)
+{
+    if (!object || object->memoryIndex < 0 || object->memoryIndex >=
+        static_cast<int8_t>(settings::kMaxMemoryPoints)) {
+        return;
+    }
+    const settings::MemoryPoint &point =
+        settings::memory().points[static_cast<size_t>(object->memoryIndex)];
+    if (point.persistent) {
+        g_memorySaveDueMs = millis() + 2000;
+        if (g_memorySaveDueMs == 0) {
+            g_memorySaveDueMs = 1;
+        }
+    }
+}
+
+void flushMemorySave(uint32_t nowMs)
+{
+    if (g_memorySaveDueMs == 0 ||
+        static_cast<int32_t>(nowMs - g_memorySaveDueMs) < 0) {
+        return;
+    }
+    g_memorySaveDueMs = 0;
+    settings::MemoryConfig config = settings::memory();
+    bool changed = false;
+    for (size_t i = 0; i < settings::kMaxMemoryPoints; ++i) {
+        const Object *object = nullptr;
+        for (size_t j = kBuiltinCount; j < g_objectCount; ++j) {
+            if (g_objects[j].memoryIndex == static_cast<int8_t>(i)) {
+                object = &g_objects[j];
+                break;
+            }
+        }
+        if (!object || !config.points[i].persistent) {
+            continue;
+        }
+        const float value = object->isAnalog()
+                                ? object->presentValue
+                                : static_cast<float>(object->binaryPresentValue);
+        config.points[i].retainedValue = value;
+        changed = true;
+    }
+    if (changed) {
+        settings::saveMemory(config);
+    }
+}
 
 /* ------------------------------------------------------------------------- */
 /* Property lists                                                            */
@@ -612,6 +661,55 @@ void initObjects()
         ++g_objectCount;
     }
 
+    /* Append software-only memory points from NVS. */
+    const settings::MemoryConfig &memoryCfg = settings::memory();
+    for (size_t i = 0; i < settings::kMaxMemoryPoints; ++i) {
+        const settings::MemoryPoint &mp = memoryCfg.points[i];
+        if (!mp.enabled || g_objectCount >= kMaxObjectCount) {
+            continue;
+        }
+        const uint16_t objType =
+            (mp.kind == settings::kMemoryAnalog) ? kObjectAnalogValue
+                                                  : kObjectBinaryValue;
+        bool collision = false;
+        for (size_t j = 0; j < g_objectCount; ++j) {
+            if (g_objects[j].type == objType &&
+                g_objects[j].instance == mp.instance) {
+                collision = true;
+                break;
+            }
+        }
+        if (collision) {
+            continue;
+        }
+        Object &obj = g_objects[g_objectCount];
+        obj = Object{objType, mp.instance};
+        obj.memoryIndex = static_cast<int8_t>(i);
+        obj.writable = mp.writable != 0;
+        copyText(obj.name, sizeof(obj.name), mp.name[0] ? mp.name :
+                 (objType == kObjectAnalogValue ? "Memory Analog" :
+                                                  "Memory Binary"));
+        copyText(obj.description, sizeof(obj.description), mp.description);
+        obj.units = mp.units;
+        obj.minPresValue = mp.minValue;
+        obj.maxPresValue = mp.maxValue;
+        obj.covIncrement = mp.covIncrement;
+        if (objType == kObjectAnalogValue) {
+            const float initial = mp.persistent ? mp.retainedValue
+                                                : mp.defaultValue;
+            obj.relinquishDefault = initial;
+            obj.presentValue = initial;
+        } else {
+            const uint8_t initial = (mp.persistent ? mp.retainedValue
+                                                    : mp.defaultValue) >= 0.5f;
+            obj.binaryRelinquishDefault = initial;
+            obj.binaryPresentValue = initial;
+            obj.activeText = "Active";
+            obj.inactiveText = "Inactive";
+        }
+        ++g_objectCount;
+    }
+
     /* Drive all outputs (built-in + GPIO-mapped) to their initial state. */
     applyBinaryOutputs();
 }
@@ -853,6 +951,16 @@ bool writeProperty(Object *object,
         errorCode = kErrorCodeUnknownObject;
         return false;
     }
+    if (property == kPropPriorityArray) {
+        errorClass = kErrorClassProperty;
+        errorCode = kErrorCodeWriteAccessDenied;
+        return false;
+    }
+    if (property == kPropPresentValue && !object->writable) {
+        errorClass = kErrorClassProperty;
+        errorCode = kErrorCodeWriteAccessDenied;
+        return false;
+    }
     if (!isKnownProperty(object->type, property)) {
         errorClass = kErrorClassProperty;
         errorCode = kErrorCodeUnknownProperty;
@@ -930,6 +1038,7 @@ bool writeProperty(Object *object,
                         return true;
                     }
                     relinquishAnalog(object, priority);
+                    markMemoryDirty(object);
                     return true;
                 }
                 if (value.type != Value::Real) {
@@ -948,6 +1057,7 @@ bool writeProperty(Object *object,
                 } else {
                     setAnalogPriority(object, value.real, priority);
                 }
+                markMemoryDirty(object);
                 return true;
             }
 
@@ -956,6 +1066,7 @@ bool writeProperty(Object *object,
                     return true;
                 }
                 relinquishBinary(object, priority);
+                markMemoryDirty(object);
                 return true;
             }
             uint8_t binaryValue = 0;
@@ -964,13 +1075,15 @@ bool writeProperty(Object *object,
                 errorCode = kErrorCodeInvalidDataType;
                 return false;
             }
-            if (object->outOfService) {
-                object->binaryPresentValue = binaryValue;
-            } else {
-                setBinaryPriority(object, binaryValue, priority);
-            }
-            applyBinaryOutputs();
-            return true;
+                if (object->outOfService) {
+                    object->binaryPresentValue = binaryValue;
+                } else {
+                    setBinaryPriority(object, binaryValue, priority);
+                }
+                applyBinaryOutputs();
+                markMemoryDirty(object);
+                return true;
+
         }
 
         case kPropPriorityArray: {
@@ -1046,6 +1159,7 @@ bool writeProperty(Object *object,
                 }
                 object->relinquishDefault = value.real;
                 resolveAnalog(object);
+                markMemoryDirty(object);
             } else {
                 uint8_t binaryValue = 0;
                 if (!decodeBinaryValue(value, binaryValue)) {
@@ -1056,6 +1170,7 @@ bool writeProperty(Object *object,
                 object->binaryRelinquishDefault = binaryValue;
                 resolveBinary(object);
                 applyBinaryOutputs();
+                markMemoryDirty(object);
             }
             return true;
         }
@@ -1077,6 +1192,7 @@ void updateObjects(uint32_t nowMs)
 
     /* Always reflect the commanded output as soon as possible. */
     applyBinaryOutputs();
+    flushMemorySave(nowMs);
 
     if (initialized && (nowMs - lastUpdateMs) < 500) {
         return;

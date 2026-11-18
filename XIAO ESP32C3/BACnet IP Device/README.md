@@ -157,10 +157,43 @@ the correct network — a wrong password never bricks the device.
 | `POST /api/settings` | update configuration (form encoded) |
 | `GET /api/points` | all points with present values and priority arrays |
 | `POST /api/points/write` | write a value / release a priority |
+| `GET /api/memory` | configurable AV/BV memory-point definitions |
+| `POST /api/memory` | save memory-point definitions and restart |
 | `POST /api/reboot` | restart |
 | `POST /api/factory-reset` | erase settings and restart into setup mode |
 
 The UI works entirely offline; the page is embedded in the firmware flash.
+
+### Memory points (version 1.2 branch)
+
+The **Memory** tab creates up to four software-only BACnet points. They do not
+use a GPIO pin and are disabled by default:
+
+- **Binary Value (BV)** stores Active/Inactive data.
+- **Analog Value (AV)** stores a numeric value with minimum, maximum and COV
+  settings.
+- **Read-only** points reject Present_Value writes.
+- **Writable** points use the normal BACnet priority array and NULL release
+  behavior.
+- **Volatile** points return to their configured default after reboot.
+- **Persistent** points restore their retained value. The value is written to
+  NVS a few seconds after a change to reduce flash wear; priority slots and
+  COV subscriptions are not retained.
+
+Enable a row, choose its type, instance and name, then press **Save and
+restart**. Instances must be unique for the selected BACnet object type and
+must not conflict with an existing point. Configuration changes take effect
+on the next boot. The new definitions are stored under a separate `memory`
+NVS key, so existing network and GPIO settings remain compatible. Factory
+reset erases memory-point definitions too.
+
+Example configuration:
+
+```text
+BV:100  Maintenance Mode       Writable   Persistent
+AV:100  Temperature Setpoint   Writable   Persistent
+AV:101  Daily Energy Target    Read-only  Volatile
+```
 
 ## BACnet objects
 
@@ -177,6 +210,7 @@ The UI works entirely offline; the page is embedded in the firmware flash.
 | Binary Input | 1 | BOOT button | no |
 | Binary Output | 0 | relay on GPIO2 | yes, priority array |
 | Binary Value | 0 | simulation enable | yes, priority array |
+| Analog/Binary Value | configured | optional software memory point | according to Memory tab |
 
 Properties implemented per object: `object-identifier`, `object-name`,
 `object-type`, `description`, `present-value`, `status-flags`,
@@ -243,7 +277,7 @@ src/
   pio_entry.cpp         setup()/loop()
   app.cpp               Wi-Fi, setup AP, mDNS, server lifecycle
   bacnet_config.h       compile-time defaults (first boot only)
-  bacnet_settings.h/.cpp persistent settings in NVS
+  bacnet_settings.h/.cpp persistent settings in NVS (including memory points)
   bacnet_types.h        BACnet constants and value containers
   bacnet_encoding.h/.cpp tag encoding/decoding
   bacnet_objects.h/.cpp object database, properties, priority arrays, I/O
@@ -271,8 +305,11 @@ tools/bacnet_test.py    dependency-free BACnet/IP test client
   ID from ASHRAE before shipping a product.
 - The device does not route, does not support segmented requests and accepts
   APDUs up to 1476 bytes.
-- Adding a point: add an entry to `g_objects[]` in `src/bacnet_objects.cpp`,
-  then set its name/units/limits in `initObjects()`.
+- Existing built-in points are defined in `src/bacnet_objects.cpp`. User memory
+  points are configured from the web **Memory** tab; do not edit the object table
+  for those points.
+- Memory point definitions are limited to four AV/BV rows in this release. A
+  restart is required after changing their type, instance or metadata.
 
 ## Troubleshooting
 

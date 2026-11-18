@@ -24,6 +24,45 @@ enum GpioPointKind : uint8_t {
     kGpioOutput = 1,
 };
 
+/* Software-only BACnet memory points. These rows are appended as AV/BV
+ * objects at boot and are disabled by default. */
+constexpr size_t kMaxMemoryPoints = 4;
+
+enum MemoryPointKind : uint8_t {
+    kMemoryBinary = 0,
+    kMemoryAnalog = 1,
+};
+
+struct MemoryPoint {
+    uint8_t enabled;
+    uint8_t kind;       /* MemoryPointKind */
+    uint8_t writable;
+    uint8_t persistent;
+    uint32_t instance;
+    uint16_t units;
+    uint16_t reserved;
+    float defaultValue;
+    float retainedValue;
+    float minValue;
+    float maxValue;
+    float covIncrement;
+    char name[33];
+    char description[65];
+};
+
+struct MemoryConfig {
+    uint32_t magic;
+    uint16_t version;
+    uint16_t reserved;
+    MemoryPoint points[kMaxMemoryPoints];
+};
+
+const MemoryConfig &memory();
+void setMemoryDefaults(MemoryConfig &config);
+bool saveMemory(const MemoryConfig &config);
+bool saveMemoryValue(size_t index, float value);
+bool resetMemory();
+
 struct GpioPoint {
     uint8_t enabled;
     uint8_t pin;

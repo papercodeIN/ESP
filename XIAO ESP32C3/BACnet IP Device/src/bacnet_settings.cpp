@@ -5,6 +5,7 @@
 #include "bacnet_settings.h"
 
 #include <Preferences.h>
+#include <math.h>
 #include <string.h>
 
 #include "bacnet_config.h"
@@ -23,8 +24,13 @@ constexpr uint32_t kGpioMagic = 0x4750494Fu; /* "GPIO" */
 constexpr uint16_t kGpioVersion = 1;
 constexpr const char *kGpioKey = "gpio";
 
+constexpr uint32_t kMemoryMagic = 0x4D454D4Fu; /* "MEMO" */
+constexpr uint16_t kMemoryVersion = 1;
+constexpr const char *kMemoryKey = "memory";
+
 Config g_config;
 GpioConfig g_gpioConfig;
+MemoryConfig g_memoryConfig;
 Preferences g_prefs;
 bool g_ready = false;
 bool g_prefsOpen = false;
@@ -156,6 +162,57 @@ void gpioSanitize(GpioConfig &config)
     }
 }
 
+void memorySanitize(MemoryConfig &config)
+{
+    for (size_t i = 0; i < kMaxMemoryPoints; ++i) {
+        MemoryPoint &point = config.points[i];
+        point.enabled = point.enabled ? 1 : 0;
+        point.kind = (point.kind == kMemoryAnalog) ? kMemoryAnalog
+                                                    : kMemoryBinary;
+        point.writable = point.writable ? 1 : 0;
+        point.persistent = point.persistent ? 1 : 0;
+        point.name[sizeof(point.name) - 1] = '\0';
+        point.description[sizeof(point.description) - 1] = '\0';
+        if (point.instance > 4194302u) {
+            point.instance = static_cast<uint32_t>(100 + i);
+        }
+        if (point.kind == kMemoryBinary) {
+            point.defaultValue = point.defaultValue >= 0.5f ? 1.0f : 0.0f;
+            point.retainedValue = point.retainedValue >= 0.5f ? 1.0f : 0.0f;
+            point.minValue = 0.0f;
+            point.maxValue = 1.0f;
+            point.covIncrement = 1.0f;
+        } else {
+            if (!isfinite(point.minValue) || !isfinite(point.maxValue) ||
+                point.minValue >= point.maxValue) {
+                point.minValue = 0.0f;
+                point.maxValue = 100.0f;
+            }
+            if (!isfinite(point.covIncrement) || point.covIncrement <= 0.0f) {
+                point.covIncrement = 0.1f;
+            }
+            if (!isfinite(point.defaultValue)) {
+                point.defaultValue = point.minValue;
+            }
+            if (!isfinite(point.retainedValue)) {
+                point.retainedValue = point.defaultValue;
+            }
+            if (point.defaultValue < point.minValue ||
+                point.defaultValue > point.maxValue) {
+                point.defaultValue = point.minValue;
+            }
+            if (point.retainedValue < point.minValue ||
+                point.retainedValue > point.maxValue) {
+                point.retainedValue = point.defaultValue;
+            }
+        }
+        if (point.enabled == 0) {
+            point.name[0] = '\0';
+            point.description[0] = '\0';
+        }
+    }
+}
+
 } // namespace
 
 const uint8_t kGpioPointPins[kMaxGpioPoints] = {3, 4, 5, 6, 7, 10};
@@ -194,9 +251,28 @@ void setGpioDefaults(GpioConfig &config)
     }
 }
 
+void setMemoryDefaults(MemoryConfig &config)
+{
+    memset(&config, 0, sizeof(config));
+    config.magic = kMemoryMagic;
+    config.version = kMemoryVersion;
+    for (size_t i = 0; i < kMaxMemoryPoints; ++i) {
+        config.points[i].kind = kMemoryBinary;
+        config.points[i].instance = static_cast<uint32_t>(100 + i);
+        config.points[i].minValue = 0.0f;
+        config.points[i].maxValue = 1.0f;
+        config.points[i].covIncrement = 1.0f;
+    }
+}
+
 const GpioConfig &gpio()
 {
     return g_gpioConfig;
+}
+
+const MemoryConfig &memory()
+{
+    return g_memoryConfig;
 }
 
 void begin()
@@ -206,6 +282,7 @@ void begin()
     }
     setDefaults(g_config);
     setGpioDefaults(g_gpioConfig);
+    setMemoryDefaults(g_memoryConfig);
 
     if (openPrefs()) {
         Config stored;
@@ -238,6 +315,21 @@ void begin()
         }
     }
 
+    if (openPrefs()) {
+        MemoryConfig stored;
+        memset(&stored, 0, sizeof(stored));
+        const size_t read = g_prefs.getBytesLength(kMemoryKey);
+        if (read == sizeof(MemoryConfig)) {
+            if (g_prefs.getBytes(kMemoryKey, &stored, sizeof(stored)) ==
+                    sizeof(stored) &&
+                stored.magic == kMemoryMagic &&
+                stored.version == kMemoryVersion) {
+                memorySanitize(stored);
+                g_memoryConfig = stored;
+            }
+        }
+    }
+
     g_ready = true;
 }
 
@@ -264,9 +356,11 @@ bool resetToDefaults()
 {
     setDefaults(g_config);
     setGpioDefaults(g_gpioConfig);
+    setMemoryDefaults(g_memoryConfig);
     if (openPrefs()) {
         g_prefs.remove(kKey);
         g_prefs.remove(kGpioKey);
+        g_prefs.remove(kMemoryKey);
     }
     return save();
 }
@@ -292,6 +386,39 @@ bool resetGpio()
         g_prefs.remove(kGpioKey);
     }
     return saveGpio(g_gpioConfig);
+}
+
+bool saveMemory(const MemoryConfig &config)
+{
+    g_memoryConfig = config;
+    g_memoryConfig.magic = kMemoryMagic;
+    g_memoryConfig.version = kMemoryVersion;
+    memorySanitize(g_memoryConfig);
+    if (!openPrefs()) {
+        return false;
+    }
+    const size_t written =
+        g_prefs.putBytes(kMemoryKey, &g_memoryConfig, sizeof(g_memoryConfig));
+    return written == sizeof(g_memoryConfig);
+}
+
+bool saveMemoryValue(size_t index, float value)
+{
+    if (index >= kMaxMemoryPoints || !isfinite(value)) {
+        return false;
+    }
+    g_memoryConfig.points[index].retainedValue = value;
+    memorySanitize(g_memoryConfig);
+    return saveMemory(g_memoryConfig);
+}
+
+bool resetMemory()
+{
+    setMemoryDefaults(g_memoryConfig);
+    if (openPrefs()) {
+        g_prefs.remove(kMemoryKey);
+    }
+    return saveMemory(g_memoryConfig);
 }
 
 bool wifiConfigured()

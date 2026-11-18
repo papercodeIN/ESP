@@ -9,6 +9,8 @@
  *   POST /api/settings          update configuration (form encoded)
  *   GET  /api/points            object list with present values
  *   POST /api/points/write      write present-value or release a priority
+ *   GET  /api/memory            configurable memory-point definitions
+ *   POST /api/memory            save memory-point definitions and restart
  *   POST /api/reboot            restart the device
  *   POST /api/factory-reset     erase settings and restart
  */
@@ -422,6 +424,155 @@ void handlePoints()
     sendJson(200, json);
 }
 
+void handleMemoryGet()
+{
+    const settings::MemoryConfig &cfg = settings::memory();
+    String json;
+    json.reserve(1800);
+    json += "{\"capacity\":";
+    json += static_cast<unsigned>(settings::kMaxMemoryPoints);
+    json += ",\"points\":[";
+    for (size_t i = 0; i < settings::kMaxMemoryPoints; ++i) {
+        if (i) {
+            json += ',';
+        }
+        const settings::MemoryPoint &mp = cfg.points[i];
+        json += "{\"enabled\":";
+        json += mp.enabled ? "true" : "false";
+        json += ",\"kind\":";
+        json += static_cast<unsigned>(mp.kind);
+        json += ",\"writable\":";
+        json += mp.writable ? "true" : "false";
+        json += ",\"persistent\":";
+        json += mp.persistent ? "true" : "false";
+        json += ",\"instance\":";
+        json += static_cast<unsigned long>(mp.instance);
+        json += ",\"units\":";
+        json += mp.units;
+        json += ",\"defaultValue\":";
+        json += String(mp.defaultValue, 3);
+        json += ",\"retainedValue\":";
+        json += String(mp.retainedValue, 3);
+        json += ",\"minValue\":";
+        json += String(mp.minValue, 3);
+        json += ",\"maxValue\":";
+        json += String(mp.maxValue, 3);
+        json += ",\"covIncrement\":";
+        json += String(mp.covIncrement, 3);
+        json += ",\"name\":\"";
+        json += jsonEscape(mp.name);
+        json += "\",\"description\":\"";
+        json += jsonEscape(mp.description);
+        json += "\"}";
+    }
+    json += "]}";
+    sendJson(200, json);
+}
+
+void handleMemoryPost()
+{
+    settings::MemoryConfig next;
+    settings::setMemoryDefaults(next);
+    const settings::MemoryConfig &current = settings::memory();
+    for (size_t i = 0; i < settings::kMaxMemoryPoints; ++i) {
+        next.points[i].retainedValue = current.points[i].retainedValue;
+    }
+    for (size_t i = 0; i < settings::kMaxMemoryPoints; ++i) {
+        settings::MemoryPoint &mp = next.points[i];
+        const String index = String(i);
+        auto key = [&](const char *prefix) {
+            return String(prefix) + "_" + index;
+        };
+        if (g_server.hasArg(key("enabled"))) {
+            mp.enabled = g_server.arg(key("enabled")) == "1";
+        }
+        if (g_server.hasArg(key("kind"))) {
+            mp.kind = g_server.arg(key("kind")).toInt() == 1
+                          ? settings::kMemoryAnalog
+                          : settings::kMemoryBinary;
+        }
+        if (g_server.hasArg(key("writable"))) {
+            mp.writable = g_server.arg(key("writable")) == "1";
+        }
+        if (g_server.hasArg(key("persistent"))) {
+            mp.persistent = g_server.arg(key("persistent")) == "1";
+        }
+        if (g_server.hasArg(key("instance"))) {
+            mp.instance = static_cast<uint32_t>(strtoul(
+                g_server.arg(key("instance")).c_str(), nullptr, 10));
+        }
+        if (g_server.hasArg(key("units"))) {
+            mp.units = static_cast<uint16_t>(g_server.arg(key("units")).toInt());
+        }
+        if (g_server.hasArg(key("default"))) {
+            mp.defaultValue = g_server.arg(key("default")).toFloat();
+        }
+        if (g_server.hasArg(key("min"))) {
+            mp.minValue = g_server.arg(key("min")).toFloat();
+        }
+        if (g_server.hasArg(key("max"))) {
+            mp.maxValue = g_server.arg(key("max")).toFloat();
+        }
+        if (g_server.hasArg(key("cov"))) {
+            mp.covIncrement = g_server.arg(key("cov")).toFloat();
+        }
+        if (g_server.hasArg(key("name"))) {
+            copyText(mp.name, sizeof(mp.name), g_server.arg(key("name")).c_str());
+        }
+        if (g_server.hasArg(key("description"))) {
+            copyText(mp.description, sizeof(mp.description),
+                     g_server.arg(key("description")).c_str());
+        }
+    }
+
+    for (size_t i = 0; i < settings::kMaxMemoryPoints; ++i) {
+        const settings::MemoryPoint &mp = next.points[i];
+        if (!mp.enabled) {
+            continue;
+        }
+        if (mp.instance > 4194302u || mp.name[0] == '\0') {
+            sendJson(400, "{\"ok\":false,\"error\":\"Enabled memory points need a valid instance and name\"}");
+            return;
+        }
+        if (mp.kind == settings::kMemoryAnalog &&
+            (!isfinite(mp.minValue) || !isfinite(mp.maxValue) ||
+             mp.minValue >= mp.maxValue || !isfinite(mp.defaultValue) ||
+             mp.defaultValue < mp.minValue || mp.defaultValue > mp.maxValue ||
+             !isfinite(mp.covIncrement) || mp.covIncrement <= 0.0f)) {
+            sendJson(400, "{\"ok\":false,\"error\":\"Invalid analog range or default\"}");
+            return;
+        }
+        const uint16_t type = mp.kind == settings::kMemoryAnalog
+                                  ? bacnet::kObjectAnalogValue
+                                  : bacnet::kObjectBinaryValue;
+        for (size_t j = 0; j < i; ++j) {
+            const settings::MemoryPoint &other = next.points[j];
+            if (other.enabled && other.kind == mp.kind &&
+                other.instance == mp.instance) {
+                sendJson(400, "{\"ok\":false,\"error\":\"Duplicate memory instance\"}");
+                return;
+            }
+        }
+        for (size_t j = 0; j < bacnet::objectCount(); ++j) {
+            const bacnet::Object *object = bacnet::objectAt(j);
+            if (object && object->type == type && object->instance == mp.instance &&
+                object->memoryIndex < 0) {
+                sendJson(400, "{\"ok\":false,\"error\":\"Memory instance conflicts with an existing point\"}");
+                return;
+            }
+        }
+    }
+
+    const bool saved = settings::saveMemory(next);
+    String json = "{\"ok\":";
+    json += saved ? "true" : "false";
+    json += ",\"reboot\":true}";
+    sendJson(saved ? 200 : 500, json);
+    if (saved) {
+        rebootSoon(700);
+    }
+}
+
 void handlePointWrite()
 {
     if (!g_server.hasArg("type") || !g_server.hasArg("instance")) {
@@ -656,6 +807,8 @@ void begin()
     g_server.on("/api/settings", HTTP_POST, handleSettingsPost);
     g_server.on("/api/points", HTTP_GET, handlePoints);
     g_server.on("/api/points/write", HTTP_POST, handlePointWrite);
+    g_server.on("/api/memory", HTTP_GET, handleMemoryGet);
+    g_server.on("/api/memory", HTTP_POST, handleMemoryPost);
     g_server.on("/api/reboot", HTTP_POST, handleReboot);
     g_server.on("/api/factory-reset", HTTP_POST, handleFactoryReset);
     g_server.on("/api/gpio", HTTP_GET, handleGpioGet);

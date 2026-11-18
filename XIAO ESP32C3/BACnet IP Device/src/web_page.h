@@ -107,6 +107,7 @@ code{background:#0a1118;border:1px solid var(--line);padding:1px 6px;border-radi
 <button data-tab="network">Network</button>
 <button data-tab="device">BACnet</button>
 <button data-tab="gpio">GPIO</button>
+<button data-tab="memory">Memory</button>
 <button data-tab="points">Points</button>
 </nav>
 </div>
@@ -214,6 +215,20 @@ code{background:#0a1118;border:1px solid var(--line);padding:1px 6px;border-radi
       </table>
     </div>
     <div class="actions" style="margin-top:12px"><button class="primary" onclick="saveGpio()">Save and restart</button></div>
+  </div>
+</section>
+
+<section id="tab-memory">
+  <div class="card">
+    <h2>Memory Points</h2>
+    <div class="muted" style="margin-bottom:10px">Create software-only BACnet AV/BV points. Definitions are stored in flash; persistent values are saved a few seconds after a change. Changes require a restart.</div>
+    <div style="overflow-x:auto">
+      <table>
+        <thead><tr><th>Enable</th><th>Type</th><th>Instance</th><th>Name</th><th>Access</th><th>Storage</th><th>Default</th><th>Min</th><th>Max</th></tr></thead>
+        <tbody id="memory-rows"></tbody>
+      </table>
+    </div>
+    <div class="actions" style="margin-top:12px"><button class="primary" onclick="saveMemory()">Save and restart</button></div>
   </div>
 </section>
 
@@ -466,6 +481,48 @@ function factoryReset(){
 }
 
 var GPIO_POINTS=[];
+var MEMORY_POINTS=[];
+
+function loadMemory(){
+  return api("/api/memory").then(function(data){
+    MEMORY_POINTS=data.points||[];
+    var body=$("#memory-rows");
+    body.innerHTML="";
+    MEMORY_POINTS.forEach(function(mp,i){
+      var tr=document.createElement("tr");
+      tr.innerHTML=
+        '<td><input type="checkbox" id="me-'+i+'"'+(mp.enabled?" checked":"")+'></td>'+
+        '<td><select id="mk-'+i+'"><option value="0"'+(mp.kind===0?" selected":"")+'>Binary (BV)</option><option value="1"'+(mp.kind===1?" selected":"")+'>Analog (AV)</option></select></td>'+
+        '<td><input type="number" id="mi-'+i+'" min="0" max="4194302" value="'+mp.instance+'" style="width:100px"></td>'+
+        '<td><input id="mn-'+i+'" maxlength="32" value="'+esc(mp.name||"")+'" placeholder="Memory point name"></td>'+
+        '<td><select id="mw-'+i+'"><option value="0"'+(!mp.writable?" selected":"")+'>Read-only</option><option value="1"'+(mp.writable?" selected":"")+'>Writable</option></select></td>'+
+        '<td><select id="mp-'+i+'"><option value="0"'+(!mp.persistent?" selected":"")+'>Volatile</option><option value="1"'+(mp.persistent?" selected":"")+'>Persistent</option></select></td>'+
+        '<td><input type="number" step="0.1" id="md-'+i+'" value="'+mp.defaultValue+'" style="width:90px"></td>'+
+        '<td><input type="number" step="0.1" id="mmin-'+i+'" value="'+mp.minValue+'" style="width:80px"></td>'+
+        '<td><input type="number" step="0.1" id="mmax-'+i+'" value="'+mp.maxValue+'" style="width:80px"></td>';
+      body.appendChild(tr);
+    });
+  });
+}
+
+function saveMemory(){
+  var data={};
+  MEMORY_POINTS.forEach(function(mp,i){
+    data["enabled_"+i]=$("#me-"+i).checked?"1":"0";
+    data["kind_"+i]=$("#mk-"+i).value;
+    data["instance_"+i]=$("#mi-"+i).value;
+    data["name_"+i]=$("#mn-"+i).value;
+    data["writable_"+i]=$("#mw-"+i).value;
+    data["persistent_"+i]=$("#mp-"+i).value;
+    data["default_"+i]=$("#md-"+i).value;
+    data["min_"+i]=$("#mmin-"+i).value;
+    data["max_"+i]=$("#mmax-"+i).value;
+  });
+  fetch("/api/memory",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:new URLSearchParams(data)})
+    .then(function(r){return r.json();})
+    .then(function(r){toast(r.ok?"Saved - restarting...":(r.error||"Save failed"));})
+    .catch(function(){toast("Save failed");});
+}
 
 function loadGpio(){
   return api("/api/gpio").then(function(data){
@@ -503,7 +560,7 @@ function saveGpio(){
     .catch(function(){toast("Saved - restarting...");});
 }
 
-loadStatus();loadSettings();loadPoints();loadGpio();
+loadStatus();loadSettings();loadPoints();loadGpio();loadMemory();
 setInterval(loadStatus,3000);
 setInterval(loadPoints,5000);
 </script>

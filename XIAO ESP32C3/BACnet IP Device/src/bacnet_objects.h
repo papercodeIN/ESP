@@ -50,6 +50,8 @@ struct Object {
 
     /* GPIO binding: -1 = software-only (not wired to a pin). */
     int8_t gpioPin = -1;
+    int8_t memoryIndex = -1;
+    bool writable = true;
 
     bool isAnalog() const
     {
@@ -62,8 +64,8 @@ struct Object {
     }
     bool isCommandable() const
     {
-        return type == kObjectAnalogValue || type == kObjectBinaryOutput ||
-               type == kObjectBinaryValue;
+        return (type == kObjectAnalogValue || type == kObjectBinaryOutput ||
+                type == kObjectBinaryValue) && writable;
     }
     bool isInput() const
     {
