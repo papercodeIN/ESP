@@ -153,8 +153,9 @@ void startPortal()
     Serial.printf("[WiFi] Join \"%s\" and open http://%s/\n",
                   apName.c_str(), WiFi.softAPIP().toString().c_str());
     if (config.apPassword[0]) {
-        Serial.printf("[WiFi] Access point password: %s\n",
-                      config.apPassword);
+        Serial.println("[WiFi] Setup AP password is configured");
+    } else {
+        Serial.println("[WiFi] WARNING: setup AP has no password");
     }
 }
 

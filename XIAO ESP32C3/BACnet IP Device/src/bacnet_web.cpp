@@ -100,7 +100,25 @@ const char *kindName(uint16_t type)
 void sendJson(int code, const String &body)
 {
     g_server.sendHeader("Cache-Control", "no-store");
+    g_server.sendHeader("X-Content-Type-Options", "nosniff");
+    g_server.sendHeader("X-Frame-Options", "DENY");
     g_server.send(code, "application/json", body);
+}
+
+bool requireAdmin()
+{
+    const settings::Config &cfg = settings::get();
+    const bool setupMode = (WiFi.getMode() & WIFI_MODE_AP) != 0 &&
+                           WiFi.status() != WL_CONNECTED;
+    if (setupMode && cfg.apPassword[0] == '\0') {
+        return true;
+    }
+    if (cfg.apPassword[0] == '\0' ||
+        !g_server.authenticate("admin", cfg.apPassword)) {
+        g_server.requestAuthentication(BASIC_AUTH, "BACnet device");
+        return false;
+    }
+    return true;
 }
 
 void rebootSoon(uint32_t delayMs)
@@ -200,6 +218,9 @@ void handleDiagnostics()
 
 void handleSettingsGet()
 {
+    if (!requireAdmin()) {
+        return;
+    }
     settings::Config &cfg = settings::get();
 
     String json;
@@ -250,6 +271,9 @@ void handleSettingsGet()
 
 void handleSettingsPost()
 {
+    if (!requireAdmin()) {
+        return;
+    }
     settings::Config &cfg = settings::get();
     bool reboot = false;
 
@@ -454,6 +478,9 @@ void handlePoints()
 
 void handleMemoryGet()
 {
+    if (!requireAdmin()) {
+        return;
+    }
     const settings::MemoryConfig &cfg = settings::memory();
     String json;
     json.reserve(1800);
@@ -499,6 +526,9 @@ void handleMemoryGet()
 
 void handleMemoryPost()
 {
+    if (!requireAdmin()) {
+        return;
+    }
     settings::MemoryConfig next;
     settings::setMemoryDefaults(next);
     const settings::MemoryConfig &current = settings::memory();
@@ -603,6 +633,9 @@ void handleMemoryPost()
 
 void handlePointWrite()
 {
+    if (!requireAdmin()) {
+        return;
+    }
     if (!g_server.hasArg("type") || !g_server.hasArg("instance")) {
         sendJson(400, "{\"ok\":false,\"class\":2,\"code\":32}");
         return;
@@ -675,12 +708,18 @@ void handlePointWrite()
 
 void handleReboot()
 {
+    if (!requireAdmin()) {
+        return;
+    }
     sendJson(200, "{\"ok\":true,\"reboot\":true}");
     rebootSoon(400);
 }
 
 void handleFactoryReset()
 {
+    if (!requireAdmin()) {
+        return;
+    }
     const bool ok = settings::resetToDefaults();
     String json = "{\"ok\":";
     json += ok ? "true" : "false";
@@ -693,6 +732,9 @@ void handleFactoryReset()
 
 void handleGpioGet()
 {
+    if (!requireAdmin()) {
+        return;
+    }
     const settings::GpioConfig &cfg = settings::gpio();
 
     String json;
@@ -725,6 +767,9 @@ void handleGpioGet()
 
 void handleGpioPost()
 {
+    if (!requireAdmin()) {
+        return;
+    }
     /* Parse the incoming table: fields are indexed arrays like
      * enabled_0, kind_0, instance_0, name_0, activeLow_0, ... */
     settings::GpioConfig next;
