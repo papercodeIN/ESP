@@ -150,11 +150,12 @@ bool requireAdmin()
     const settings::Config &cfg = settings::get();
     const bool setupMode = (WiFi.getMode() & WIFI_MODE_AP) != 0 &&
                            WiFi.status() != WL_CONNECTED;
-    if (setupMode && cfg.apPassword[0] == '\0') {
+    if (cfg.apPassword[0] == '\0') {
+        /* Password-free commissioning remains available for first boot. The
+         * release checklist requires setting an AP password before deployment. */
         return true;
     }
-    if (cfg.apPassword[0] == '\0' ||
-        !g_server.authenticate("admin", cfg.apPassword)) {
+    if (!g_server.authenticate("admin", cfg.apPassword)) {
         g_server.requestAuthentication(BASIC_AUTH, "BACnet device");
         return false;
     }
@@ -617,6 +618,10 @@ void handleMemoryPost()
     for (size_t i = 0; i < settings::kMaxMemoryPoints; ++i) {
         next.points[i].retainedValue = current.points[i].retainedValue;
     }
+    if (!requestWithinLimits()) {
+        sendJson(413, "{\"ok\":false,\"error\":\"Request too large\"}");
+        return;
+    }
     for (size_t i = 0; i < settings::kMaxMemoryPoints; ++i) {
         settings::MemoryPoint &mp = next.points[i];
         const String index = String(i);
@@ -723,11 +728,15 @@ void handlePointWrite()
         return;
     }
 
-    const uint16_t type =
-        static_cast<uint16_t>(g_server.arg("type").toInt());
-    const uint32_t instance =
-        static_cast<uint32_t>(strtoul(g_server.arg("instance").c_str(),
-                                      nullptr, 10));
+    uint32_t typeValue = 0;
+    uint32_t instance = 0;
+    if (!parseUnsigned(g_server.arg("type"), typeValue) ||
+        !parseUnsigned(g_server.arg("instance"), instance) ||
+        typeValue > 1023u || instance > 4194302u) {
+        sendJson(400, "{\"ok\":false,\"error\":\"Invalid point identifier\"}");
+        return;
+    }
+    const uint16_t type = static_cast<uint16_t>(typeValue);
 
     bacnet::Object *object = bacnet::findObject(type, instance);
     if (!object) {
@@ -758,16 +767,23 @@ void handlePointWrite()
         }
     } else {
         const String text = g_server.arg("value");
+        if (text != "0" && text != "1") {
+            sendJson(400, "{\"ok\":false,\"error\":\"Binary value must be 0 or 1\"}");
+            return;
+        }
         value.type = bacnet::Value::Enumerated;
-        value.unsignedValue = (text == "0" || text.length() == 0) ? 0 : 1;
+        value.unsignedValue = text == "1" ? 1 : 0;
     }
 
     uint8_t priority = 0;
     if (g_server.hasArg("priority")) {
-        const long p = g_server.arg("priority").toInt();
-        if (p >= 1 && p <= bacnet::kMaxPriority) {
-            priority = static_cast<uint8_t>(p);
+        uint32_t parsedPriority = 0;
+        if (!parseUnsigned(g_server.arg("priority"), parsedPriority) ||
+            parsedPriority < 1 || parsedPriority > bacnet::kMaxPriority) {
+            sendJson(400, "{\"ok\":false,\"error\":\"Invalid priority\"}");
+            return;
         }
+        priority = static_cast<uint8_t>(parsedPriority);
     }
 
     uint16_t errorClass = 0;
@@ -853,6 +869,10 @@ void handleGpioGet()
 void handleGpioPost()
 {
     if (!requireAdmin()) {
+        return;
+    }
+    if (!requestWithinLimits()) {
+        sendJson(413, "{\"ok\":false,\"error\":\"Request too large\"}");
         return;
     }
     /* Parse the incoming table: fields are indexed arrays like
