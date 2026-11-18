@@ -97,6 +97,46 @@ const char *kindName(uint16_t type)
     }
 }
 
+bool parseUnsigned(const String &text, uint32_t &value)
+{
+    if (text.length() == 0) {
+        return false;
+    }
+    char *end = nullptr;
+    const unsigned long parsed = strtoul(text.c_str(), &end, 10);
+    if (!end || *end != '\0' || parsed > 0xFFFFFFFFul) {
+        return false;
+    }
+    value = static_cast<uint32_t>(parsed);
+    return true;
+}
+
+bool validIPv4(const String &text)
+{
+    IPAddress address;
+    return address.fromString(text) && text.length() <= 15;
+}
+
+bool validHostname(const String &text)
+{
+    if (text.length() == 0 || text.length() >= 33) {
+        return false;
+    }
+    for (size_t i = 0; i < text.length(); ++i) {
+        const char c = text[i];
+        if (!((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+              (c >= '0' && c <= '9') || c == '-')) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool requestWithinLimits()
+{
+    return g_server.args() <= 40 && g_server.clientContentLength() <= 4096;
+}
+
 void sendJson(int code, const String &body)
 {
     g_server.sendHeader("Cache-Control", "no-store");
@@ -274,6 +314,10 @@ void handleSettingsPost()
     if (!requireAdmin()) {
         return;
     }
+    if (!requestWithinLimits()) {
+        sendJson(413, "{\"ok\":false,\"error\":\"Request too large\"}");
+        return;
+    }
     settings::Config &cfg = settings::get();
     bool reboot = false;
 
@@ -295,7 +339,11 @@ void handleSettingsPost()
     }
     if (g_server.hasArg("hostname")) {
         const String value = g_server.arg("hostname");
-        if (value.length() > 0 && value != String(cfg.hostname)) {
+        if (!validHostname(value)) {
+            sendJson(400, "{\"ok\":false,\"error\":\"Invalid hostname\"}");
+            return;
+        }
+        if (value != String(cfg.hostname)) {
             copyText(cfg.hostname, sizeof(cfg.hostname), value.c_str());
             reboot = true;
         }
@@ -307,25 +355,49 @@ void handleSettingsPost()
             reboot = true;
         }
     }
-    if (g_server.hasArg("ip") && g_server.arg("ip") != String(cfg.staticIp)) {
-        copyText(cfg.staticIp, sizeof(cfg.staticIp),
-                 g_server.arg("ip").c_str());
-        reboot = true;
+    if (g_server.hasArg("ip")) {
+        const String value = g_server.arg("ip");
+        if (!validIPv4(value)) {
+            sendJson(400, "{\"ok\":false,\"error\":\"Invalid IP address\"}");
+            return;
+        }
+        if (value != String(cfg.staticIp)) {
+            copyText(cfg.staticIp, sizeof(cfg.staticIp), value.c_str());
+            reboot = true;
+        }
     }
-    if (g_server.hasArg("gw") && g_server.arg("gw") != String(cfg.gateway)) {
-        copyText(cfg.gateway, sizeof(cfg.gateway),
-                 g_server.arg("gw").c_str());
-        reboot = true;
+    if (g_server.hasArg("gw")) {
+        const String value = g_server.arg("gw");
+        if (!validIPv4(value)) {
+            sendJson(400, "{\"ok\":false,\"error\":\"Invalid gateway\"}");
+            return;
+        }
+        if (value != String(cfg.gateway)) {
+            copyText(cfg.gateway, sizeof(cfg.gateway), value.c_str());
+            reboot = true;
+        }
     }
-    if (g_server.hasArg("mask") &&
-        g_server.arg("mask") != String(cfg.subnet)) {
-        copyText(cfg.subnet, sizeof(cfg.subnet),
-                 g_server.arg("mask").c_str());
-        reboot = true;
+    if (g_server.hasArg("mask")) {
+        const String value = g_server.arg("mask");
+        if (!validIPv4(value)) {
+            sendJson(400, "{\"ok\":false,\"error\":\"Invalid subnet mask\"}");
+            return;
+        }
+        if (value != String(cfg.subnet)) {
+            copyText(cfg.subnet, sizeof(cfg.subnet), value.c_str());
+            reboot = true;
+        }
     }
-    if (g_server.hasArg("dns") && g_server.arg("dns") != String(cfg.dns)) {
-        copyText(cfg.dns, sizeof(cfg.dns), g_server.arg("dns").c_str());
-        reboot = true;
+    if (g_server.hasArg("dns")) {
+        const String value = g_server.arg("dns");
+        if (!validIPv4(value)) {
+            sendJson(400, "{\"ok\":false,\"error\":\"Invalid DNS address\"}");
+            return;
+        }
+        if (value != String(cfg.dns)) {
+            copyText(cfg.dns, sizeof(cfg.dns), value.c_str());
+            reboot = true;
+        }
     }
     if (g_server.hasArg("apPass")) {
         copyText(cfg.apPassword, sizeof(cfg.apPassword),
@@ -334,10 +406,13 @@ void handleSettingsPost()
 
     /* --- BACnet identity ---------------------------------------------- */
     if (g_server.hasArg("instance")) {
-        const uint32_t value =
-            static_cast<uint32_t>(strtoul(g_server.arg("instance").c_str(),
-                                          nullptr, 10));
-        if (value <= 4194302u && value != cfg.deviceInstance) {
+        uint32_t value = 0;
+        if (!parseUnsigned(g_server.arg("instance"), value) ||
+            value > 4194302u) {
+            sendJson(400, "{\"ok\":false,\"error\":\"Invalid device instance\"}");
+            return;
+        }
+        if (value != cfg.deviceInstance) {
             cfg.deviceInstance = value;
             reboot = true;
         }
@@ -385,8 +460,15 @@ void handleSettingsPost()
         }
     }
     if (g_server.hasArg("web")) {
+        if (g_server.arg("web") != "0" && g_server.arg("web") != "1") {
+            sendJson(400, "{\"ok\":false,\"error\":\"Invalid web setting\"}");
+            return;
+        }
         const uint8_t value = g_server.arg("web") == "1" ? 1 : 0;
-        cfg.webEnabled = value;
+        if (cfg.webEnabled != value) {
+            cfg.webEnabled = value;
+            reboot = true;
+        }
     }
 
     const bool saved = settings::save();
@@ -723,9 +805,12 @@ void handleFactoryReset()
     const bool ok = settings::resetToDefaults();
     String json = "{\"ok\":";
     json += ok ? "true" : "false";
-    json += ",\"reboot\":true}";
+    json += ",\"reboot\":";
+    json += ok ? "true}" : "false}";
     sendJson(ok ? 200 : 500, json);
-    rebootSoon(600);
+    if (ok) {
+        rebootSoon(600);
+    }
 }
 
 /* ---- GPIO mapping API --------------------------------------------------- */
