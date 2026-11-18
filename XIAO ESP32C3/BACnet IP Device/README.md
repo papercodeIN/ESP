@@ -287,15 +287,47 @@ src/
 tools/bacnet_test.py    dependency-free BACnet/IP test client
 ```
 
+## Version 1.2 industry-readiness work
+
+This branch is the engineering-hardening branch for the ESP32 BACnet/IP
+project. It preserves the original `main` branch until field testing is
+complete. The branch currently includes configurable AV/BV memory points,
+GPIO polarity handling, safer BACnet packet validation, watchdog/reset
+telemetry, safe output handling during restart, Wi-Fi portal/reconnect fixes,
+and authenticated web administration when an AP password is configured.
+
+This is **not** a certification claim. Before industrial deployment, the
+operator must test the actual hardware for power cycling, brownout behavior,
+relay/GPIO electrical safety, Wi-Fi loss and recovery, temperature, EMI/EMC,
+long-duration operation, and flash persistence. BACnet/BTL conformance,
+secure boot/flash encryption, signed OTA, and a real ASHRAE vendor ID remain
+release prerequisites where required by the installation.
+
+### Version 1.2 field-test checklist
+
+- Build with `python -m platformio run`.
+- Flash only after reviewing the build and backing up the current device.
+- Confirm the web API does not return Wi-Fi or setup-AP passwords.
+- Configure a non-empty setup-AP password before connecting the device to a
+  production network. HTTP Basic authentication uses username `admin` and the
+  configured setup-AP password; plain HTTP must remain on a trusted VLAN.
+- Test memory-point read-only/writable behavior, priority writes, NULL release,
+  reboot retention, and factory reset.
+- Test GPIO active-low and active-high input/output wiring with the real load.
+- Disconnect and restore Wi-Fi; verify BACnet and the web UI recover.
+- Capture `/api/diagnostics` after normal boot and after a deliberate restart.
+- Do not merge into `main` until hardware results and the remaining external
+  certification/security review are recorded.
+
 ## Configuration notes
 
 - `src/bacnet_config.h` seeds the defaults on first boot and after a factory
   reset. After that, everything is configured in the web UI.
 - Real Wi-Fi credentials belong in `src/bacnet_secrets.h` (git-ignored, copy
-  `src/bacnet_secrets.h.example`). They are compiled into the firmware
-  binary — convenient for the lab, but switch to empty defaults and
-  configure over the setup access point before shipping a device or
-  publishing the binary.
+  `src/bacnet_secrets.h.example`). The version 1.2 fallback defaults are empty,
+  so a build without local secrets enters commissioning mode instead of trying
+  placeholder credentials. Configure credentials through the setup access point
+  before shipping a device or publishing the binary.
 - Radio settings for BACnet stability: Wi-Fi modem sleep is disabled and
   TX power is pinned at the ESP32-C3 maximum (19.5 dBm). Remaining signal
   gains are physical: antenna routing/placement, distance to the router,
