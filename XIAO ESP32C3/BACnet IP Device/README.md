@@ -23,9 +23,10 @@ to change Wi-Fi or the device instance.
 - **Live point page**: read every point, write commandable points, release
   individual priorities
 - **Setup access point**: if no Wi-Fi is configured or the stored network
-  cannot be reached, the device opens an **open** (password-free)
-  `bacnet-...-XXXX` access point so you can always reach the UI at
-  <http://192.168.4.1>
+  cannot be reached, the device opens a `bacnet-...-XXXX` setup access point
+  so you can reach the UI at <http://192.168.4.1>. Configure an AP password
+  before deployment; password-protected installations require HTTP Basic auth
+  (`admin` plus the configured AP password).
 - Settings stored in NVS (flash), survive power cycles, factory reset button
 - mDNS host name, e.g. <http://bacnet-xiao-c3.local>
 - No cloud, no external assets, no dynamic allocation in the BACnet path
@@ -153,7 +154,8 @@ the correct network — a wrong password never bricks the device.
 | --- | --- |
 | `GET /` | configuration and monitoring UI |
 | `GET /api/status` | Wi-Fi, IP, RSSI, uptime, heap, instance, port |
-| `GET /api/settings` | stored configuration as JSON |
+| `GET /api/diagnostics` | reset, watchdog, BACnet and COV counters |
+| `GET /api/settings` | stored configuration as JSON; passwords are never returned |
 | `POST /api/settings` | update configuration (form encoded) |
 | `GET /api/points` | all points with present values and priority arrays |
 | `POST /api/points/write` | write a value / release a priority |
@@ -336,7 +338,9 @@ release prerequisites where required by the installation.
 - **Vendor ID 999 is the BACnet test/development ID.** Request a real vendor
   ID from ASHRAE before shipping a product.
 - The device does not route, does not support segmented requests and accepts
-  APDUs up to 1476 bytes.
+  APDUs up to 1476 bytes. It does not provide BACnet/SC, BBMD, foreign-device
+  registration, or BACnet protocol authentication; use a trusted VLAN/firewall
+  for BACnet/IP control traffic.
 - Existing built-in points are defined in `src/bacnet_objects.cpp`. User memory
   points are configured from the web **Memory** tab; do not edit the object table
   for those points.
