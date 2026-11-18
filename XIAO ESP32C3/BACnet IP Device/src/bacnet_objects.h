@@ -85,7 +85,7 @@ Object *findObject(uint16_t type, uint32_t instance);
 
 /* Property identifiers readable on this object type (used by property-list
  * and by the all(8) ReadPropertyMultiple expansion). */
-const uint32_t *objectPropertyList(uint16_t type, size_t *count);
+const uint32_t *objectPropertyList(const Object *object, size_t *count);
 
 /* Encode a property value. arrayIndex == kArrayAll means "whole array". */
 ReadStatus readProperty(const Object *object,

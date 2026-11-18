@@ -984,7 +984,7 @@ void Server::handleReadPropertyMultiple(const uint8_t *data,
                 } else {
                     size_t count = 0;
                     const uint32_t *list =
-                        objectPropertyList(object->type, &count);
+                        objectPropertyList(object, &count);
                     for (size_t i = 0; list && i < count; ++i) {
                         writer.ctxEnumerated(2, list[i]);
                         ByteWriter scratch(valueScratch_,

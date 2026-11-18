@@ -739,14 +739,30 @@ Object *findObject(uint16_t type, uint32_t instance)
     return nullptr;
 }
 
-const uint32_t *objectPropertyList(uint16_t type, size_t *count)
+const uint32_t *objectPropertyList(const Object *object, size_t *count)
 {
+    if (!object) {
+        *count = 0;
+        return nullptr;
+    }
     const uint32_t *list = nullptr;
-    if (propertiesFor(type, &list, count)) {
+    if (!propertiesFor(object->type, &list, count)) {
+        *count = 0;
+        return nullptr;
+    }
+    if (object->isCommandable()) {
         return list;
     }
-    *count = 0;
-    return nullptr;
+    static uint32_t readOnlyList[32];
+    size_t readOnlyCount = 0;
+    for (size_t i = 0; i < *count && readOnlyCount < 32; ++i) {
+        if (list[i] != kPropPriorityArray &&
+            list[i] != kPropRelinquishDefault) {
+            readOnlyList[readOnlyCount++] = list[i];
+        }
+    }
+    *count = readOnlyCount;
+    return readOnlyList;
 }
 
 /* ------------------------------------------------------------------------- */
