@@ -50,6 +50,7 @@ struct Object {
 
     /* GPIO binding: -1 = software-only (not wired to a pin). */
     int8_t gpioPin = -1;
+    bool activeLow = false;
     int8_t memoryIndex = -1;
     bool writable = true;
 

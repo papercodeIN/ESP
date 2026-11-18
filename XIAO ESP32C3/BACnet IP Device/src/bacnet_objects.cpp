@@ -472,8 +472,9 @@ void applyBinaryOutputs()
         if (pin < 0) {
             continue;
         }
-        const bool active = object.binaryPresentValue != 0;
-        digitalWrite(pin, (active && !object.outOfService) ? HIGH : LOW);
+        const bool active = object.binaryPresentValue != 0 && !object.outOfService;
+        const bool levelHigh = object.activeLow ? !active : active;
+        digitalWrite(pin, levelHigh ? HIGH : LOW);
     }
 }
 
@@ -634,6 +635,7 @@ void initObjects()
         Object &obj = g_objects[g_objectCount];
         obj = Object{objType, gp.instance};
         obj.gpioPin = static_cast<int8_t>(gp.pin);
+        obj.activeLow = gp.activeLow != 0;
         if (gp.name[0]) {
             copyText(obj.name, sizeof(obj.name), gp.name);
         } else {
@@ -651,12 +653,12 @@ void initObjects()
         if (isOutput) {
             obj.activeText = "On";
             obj.inactiveText = "Off";
+            digitalWrite(gp.pin, gp.activeLow ? HIGH : LOW);
             pinMode(gp.pin, OUTPUT);
-            digitalWrite(gp.pin, LOW);
         } else {
             obj.activeText = "Active";
             obj.inactiveText = "Inactive";
-            pinMode(gp.pin, INPUT_PULLUP);
+            pinMode(gp.pin, gp.activeLow ? INPUT_PULLUP : INPUT);
         }
         ++g_objectCount;
     }
@@ -1046,6 +1048,11 @@ bool writeProperty(Object *object,
                     errorCode = kErrorCodeInvalidDataType;
                     return false;
                 }
+                if (!isfinite(value.real)) {
+                    errorClass = kErrorClassProperty;
+                    errorCode = kErrorCodeValueOutOfRange;
+                    return false;
+                }
                 if (value.real < object->minPresValue ||
                     value.real > object->maxPresValue) {
                     errorClass = kErrorClassProperty;
@@ -1115,6 +1122,11 @@ bool writeProperty(Object *object,
                     errorCode = kErrorCodeInvalidDataType;
                     return false;
                 }
+                if (!isfinite(value.real)) {
+                    errorClass = kErrorClassProperty;
+                    errorCode = kErrorCodeValueOutOfRange;
+                    return false;
+                }
                 if (value.real < object->minPresValue ||
                     value.real > object->maxPresValue) {
                     errorClass = kErrorClassProperty;
@@ -1149,6 +1161,11 @@ bool writeProperty(Object *object,
                 if (value.type != Value::Real) {
                     errorClass = kErrorClassProperty;
                     errorCode = kErrorCodeInvalidDataType;
+                    return false;
+                }
+                if (!isfinite(value.real)) {
+                    errorClass = kErrorClassProperty;
+                    errorCode = kErrorCodeValueOutOfRange;
                     return false;
                 }
                 if (value.real < object->minPresValue ||
@@ -1251,8 +1268,9 @@ void updateObjects(uint32_t nowMs)
             obj.outOfService) {
             continue;
         }
-        obj.binaryPresentValue =
-            (digitalRead(obj.gpioPin) == LOW) ? 1 : 0;
+        const bool activeLevel = digitalRead(obj.gpioPin) ==
+                                  (obj.activeLow ? LOW : HIGH);
+        obj.binaryPresentValue = activeLevel ? 1 : 0;
     }
 }
 
