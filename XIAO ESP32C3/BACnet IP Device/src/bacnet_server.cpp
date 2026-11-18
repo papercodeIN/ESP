@@ -455,13 +455,16 @@ void Server::handleWhoIs(const uint8_t *data,
 /* ------------------------------------------------------------------------- */
 CovSubscription *Server::findCovSubscription(uint32_t processId,
                                              uint16_t objectType,
-                                             uint32_t objectInstance)
+                                             uint32_t objectInstance,
+                                             IPAddress address,
+                                             uint16_t port)
 {
     for (size_t i = 0; i < kMaxCovSubscriptions; ++i) {
         CovSubscription &sub = cov_[i];
         if (sub.active && sub.processId == processId &&
             sub.objectType == objectType &&
-            sub.objectInstance == objectInstance) {
+            sub.objectInstance == objectInstance && sub.address == address &&
+            sub.port == port) {
             return &sub;
         }
     }
@@ -554,7 +557,8 @@ void Server::handleSubscribeCov(const uint8_t *data,
     /* Lifetime 0 cancels an existing subscription. */
     if (hasLifetime && lifetime == 0) {
         CovSubscription *existing =
-            findCovSubscription(processId, objectType, instance);
+            findCovSubscription(processId, objectType, instance, remoteIp,
+                                remotePort);
         if (existing) {
             existing->active = false;
         }
@@ -563,7 +567,8 @@ void Server::handleSubscribeCov(const uint8_t *data,
     }
 
     CovSubscription *sub =
-        findCovSubscription(processId, objectType, instance);
+        findCovSubscription(processId, objectType, instance, remoteIp,
+                            remotePort);
     if (!sub) {
         sub = reserveCovSubscription();
         if (!sub) {
@@ -581,6 +586,11 @@ void Server::handleSubscribeCov(const uint8_t *data,
     sub->address = remoteIp;
     sub->port = remotePort;
     sub->confirmed = confirmed;
+    if (hasLifetime && lifetime > 86400u) {
+        sendError(invokeId, kServiceSubscribeCov, kErrorClassProperty,
+                  kErrorCodeValueOutOfRange, remoteIp, remotePort);
+        return;
+    }
     sub->expiresAtMs = hasLifetime ? millis() + lifetime * 1000u : 0;
 
     sendSimpleAck(invokeId, kServiceSubscribeCov, remoteIp, remotePort);

@@ -93,7 +93,9 @@ class Server {
     void sendCovNotification(CovSubscription &subscription);
     CovSubscription *findCovSubscription(uint32_t processId,
                                          uint16_t objectType,
-                                         uint32_t objectInstance);
+                                         uint32_t objectInstance,
+                                         IPAddress address,
+                                         uint16_t port);
     CovSubscription *reserveCovSubscription();
 
     void sendIAmFrame(IPAddress destination, uint16_t destinationPort,
