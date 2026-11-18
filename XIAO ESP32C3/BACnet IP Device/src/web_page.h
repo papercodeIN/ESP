@@ -106,6 +106,7 @@ code{background:#0a1118;border:1px solid var(--line);padding:1px 6px;border-radi
 <button class="active" data-tab="status">Status</button>
 <button data-tab="network">Network</button>
 <button data-tab="device">BACnet</button>
+<button data-tab="gpio">GPIO</button>
 <button data-tab="points">Points</button>
 </nav>
 </div>
@@ -199,6 +200,20 @@ code{background:#0a1118;border:1px solid var(--line);padding:1px 6px;border-radi
       <div class="inline"><input id="f-web" type="checkbox"><label for="f-web" style="margin:0">Enable the web interface on the local network</label></div>
       <p class="muted" style="margin:0 0 12px">The device answers Who-Is, ReadProperty, ReadPropertyMultiple, WriteProperty and SubscribeCOV (change-of-value notifications). Change the UDP port only if your site requires it (default 47808 / 0xBAC0).</p>
     </div>
+  </div>
+</section>
+
+<section id="tab-gpio">
+  <div class="card">
+    <h2>GPIO Point Mapping</h2>
+    <div class="muted" style="margin-bottom:10px">Assign spare header pins to BACnet Binary Input (BI) or Binary Output (BO) points. Built-in points BO:0 (D0 / GPIO2) and BI:1 (D9 / BOOT) are not shown here. Changes require a device restart.</div>
+    <div style="overflow-x:auto">
+      <table>
+        <thead><tr><th>Enable</th><th>Pin</th><th>Type</th><th>Instance</th><th>Name</th></tr></thead>
+        <tbody id="gpio-rows"></tbody>
+      </table>
+    </div>
+    <div class="actions" style="margin-top:12px"><button class="primary" onclick="saveGpio()">Save and restart</button></div>
   </div>
 </section>
 
@@ -297,7 +312,7 @@ function renderPoints(){
       if(isAnalog){
         html+='<td><input type="number" step="0.1" id="val-'+p.t+'-'+p.i+'" value="'+fmt(p.v,2)+'"></td>';
       }else{
-        html+='<td><select id="val-'+p.t+'-'+p.i+'"><option value="1">Active (1)</option><option value="0">Inactive (0)</option></select></td>';
+        html+='<td><select id="val-'+p.t+'-'+p.i+'"><option value="1"'+(p.v?' selected':'')+'>Active (1)</option><option value="0"'+(!p.v?' selected':'')+'>Inactive (0)</option></select></td>';
       }
       var opts="";
       for(var n=1;n<=16;n++){opts+='<option value="'+n+'"'+(n===8?" selected":"")+'>'+n+'</option>';}
@@ -309,7 +324,7 @@ function renderPoints(){
     }
     tr.innerHTML=html;
     body.appendChild(tr);
-    if(p.c&&!isAnalog&&p.v===0){var s=document.getElementById("val-"+p.t+"-"+p.i);if(s)s.value="0";}
+    if(p.c&&!isAnalog){var s=document.getElementById("val-"+p.t+"-"+p.i);if(s)s.value=p.v?"1":"0";}
   });
 }
 
@@ -322,7 +337,10 @@ function refreshPointValues(){
       if(el.tagName==="INPUT"){
         if(document.activeElement!==el){el.value=fmt(p.v,2);}
       }else{
-        el.value=p.v?"1":"0";
+        /* Do not replace a user's in-progress binary selection during the
+         * five-second polling refresh. The next refresh after Write will
+         * still synchronize it with the BACnet present value. */
+        if(document.activeElement!==el){el.value=p.v?"1":"0";}
       }
     }else{
       el.textContent=fmt(p.v)+" "+unit(p.u);
@@ -447,7 +465,45 @@ function factoryReset(){
   api("/api/factory-reset",{method:"POST"}).then(function(){toast("Resetting...");});
 }
 
-loadStatus();loadSettings();loadPoints();
+var GPIO_POINTS=[];
+
+function loadGpio(){
+  return api("/api/gpio").then(function(data){
+    GPIO_POINTS=data.points||[];
+    var body=$("#gpio-rows");
+    body.innerHTML="";
+    GPIO_POINTS.forEach(function(gp,i){
+      var tr=document.createElement("tr");
+      tr.innerHTML=
+        '<td><input type="checkbox" id="ge-'+i+'"'+(gp.enabled?" checked":"")+'></td>'+
+        '<td><code>'+esc(gp.label)+' / GPIO'+gp.pin+'</code></td>'+
+        '<td><select id="gk-'+i+'"><option value="0"'+(gp.kind===0?" selected":"")+'>Digital Input (BI)</option><option value="1"'+(gp.kind===1?" selected":"")+'>Digital Output (BO)</option></select></td>'+
+        '<td><input type="number" id="gi-'+i+'" min="0" max="4194302" value="'+gp.instance+'" style="width:100px"></td>'+
+        '<td><input id="gn-'+i+'" maxlength="32" value="'+esc(gp.name||"")+'" placeholder="Auto-generated"></td>';
+      body.appendChild(tr);
+    });
+  });
+}
+
+function saveGpio(){
+  var data={};
+  GPIO_POINTS.forEach(function(gp,i){
+    data["enabled_"+i]=$("#ge-"+i).checked?"1":"0";
+    data["kind_"+i]=$("#gk-"+i).value;
+    data["instance_"+i]=$("#gi-"+i).value;
+    data["name_"+i]=$("#gn-"+i).value;
+    data["activeLow_"+i]=gp.activeLow?"1":"0";
+  });
+  fetch("/api/gpio",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:new URLSearchParams(data)})
+    .then(function(r){return r.json();})
+    .then(function(r){
+      if(!r.ok){toast(r.error||"Save failed");return;}
+      toast("Saved - restarting...");
+    })
+    .catch(function(){toast("Saved - restarting...");});
+}
+
+loadStatus();loadSettings();loadPoints();loadGpio();
 setInterval(loadStatus,3000);
 setInterval(loadPoints,5000);
 </script>

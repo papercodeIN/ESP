@@ -11,6 +11,7 @@
 #include <stdint.h>
 
 #include "bacnet_encoding.h"
+#include "bacnet_settings.h"
 #include "bacnet_types.h"
 
 namespace bacnet {
@@ -46,6 +47,9 @@ struct Object {
     bool binaryPriorityActive[kMaxPriority] = {false};
     const char *activeText = "Active";
     const char *inactiveText = "Inactive";
+
+    /* GPIO binding: -1 = software-only (not wired to a pin). */
+    int8_t gpioPin = -1;
 
     bool isAnalog() const
     {

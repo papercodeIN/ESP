@@ -510,6 +510,133 @@ void handleFactoryReset()
     rebootSoon(600);
 }
 
+/* ---- GPIO mapping API --------------------------------------------------- */
+
+void handleGpioGet()
+{
+    const settings::GpioConfig &cfg = settings::gpio();
+
+    String json;
+    json.reserve(800);
+    json += "{\"points\":[";
+    for (size_t i = 0; i < settings::kMaxGpioPoints; ++i) {
+        const settings::GpioPoint &gp = cfg.points[i];
+        if (i) {
+            json += ',';
+        }
+        json += "{\"pin\":";
+        json += gp.pin;
+        json += ",\"label\":\"";
+        json += settings::gpioPinLabel(gp.pin);
+        json += "\",\"enabled\":";
+        json += gp.enabled ? "true" : "false";
+        json += ",\"kind\":";
+        json += gp.kind;
+        json += ",\"activeLow\":";
+        json += gp.activeLow ? "true" : "false";
+        json += ",\"instance\":";
+        json += static_cast<unsigned long>(gp.instance);
+        json += ",\"name\":\"";
+        json += jsonEscape(gp.name);
+        json += "\"}";
+    }
+    json += "]}";
+    sendJson(200, json);
+}
+
+void handleGpioPost()
+{
+    /* Parse the incoming table: fields are indexed arrays like
+     * enabled_0, kind_0, instance_0, name_0, activeLow_0, ... */
+    settings::GpioConfig next;
+    settings::setGpioDefaults(next);
+
+    for (size_t i = 0; i < settings::kMaxGpioPoints; ++i) {
+        settings::GpioPoint &gp = next.points[i];
+
+        String prefix = String(i);
+        String enKey = "enabled_" + prefix;
+        String kiKey = "kind_" + prefix;
+        String inKey = "instance_" + prefix;
+        String nmKey = "name_" + prefix;
+        String alKey = "activeLow_" + prefix;
+
+        if (g_server.hasArg(enKey)) {
+            gp.enabled = (g_server.arg(enKey) == "1") ? 1 : 0;
+        }
+        if (g_server.hasArg(kiKey)) {
+            gp.kind = (g_server.arg(kiKey) == "1")
+                          ? settings::kGpioOutput
+                          : settings::kGpioInput;
+        }
+        if (g_server.hasArg(inKey)) {
+            gp.instance = static_cast<uint32_t>(
+                strtoul(g_server.arg(inKey).c_str(), nullptr, 10));
+        }
+        if (g_server.hasArg(nmKey)) {
+            copyText(gp.name, sizeof(gp.name),
+                     g_server.arg(nmKey).c_str());
+        }
+        if (g_server.hasArg(alKey)) {
+            gp.activeLow = (g_server.arg(alKey) == "1") ? 1 : 0;
+        }
+    }
+
+    /* Validate: enabled rows must have unique instances that don't overlap
+     * with built-in objects. Instances must be <= 4194302. */
+    for (size_t i = 0; i < settings::kMaxGpioPoints; ++i) {
+        settings::GpioPoint &gp = next.points[i];
+        if (!gp.enabled) {
+            continue;
+        }
+        if (gp.instance > 4194302u) {
+            String error = "{\"ok\":false,\"error\":\"Row ";
+            error += static_cast<unsigned>(i + 1);
+            error += " instance is out of range\"}";
+            sendJson(400, error);
+            return;
+        }
+        /* Check collisions with built-in objects. */
+        uint16_t objType = (gp.kind == settings::kGpioOutput)
+                               ? bacnet::kObjectBinaryOutput
+                               : bacnet::kObjectBinaryInput;
+        /* BI:0, BI:1 and BO:0 are built-in. */
+        if ((objType == bacnet::kObjectBinaryInput &&
+             (gp.instance == 0 || gp.instance == 1)) ||
+            (objType == bacnet::kObjectBinaryOutput && gp.instance == 0)) {
+            String error = "{\"ok\":false,\"error\":\"Row ";
+            error += static_cast<unsigned>(i + 1);
+            error += " uses a reserved built-in instance\"}";
+            sendJson(400, error);
+            return;
+        }
+        /* Check for duplicate instances among enabled rows. */
+        for (size_t j = 0; j < i; ++j) {
+            if (!next.points[j].enabled) {
+                continue;
+            }
+            uint16_t jType = (next.points[j].kind == settings::kGpioOutput)
+                                 ? bacnet::kObjectBinaryOutput
+                                 : bacnet::kObjectBinaryInput;
+            if (jType == objType &&
+                next.points[j].instance == gp.instance) {
+                sendJson(400,
+                         "{\"ok\":false,\"error\":\"Duplicate instance\"}");
+                return;
+            }
+        }
+    }
+
+    const bool saved = settings::saveGpio(next);
+    String json = "{\"ok\":";
+    json += saved ? "true" : "false";
+    json += ",\"reboot\":true}";
+    sendJson(saved ? 200 : 500, json);
+    if (saved) {
+        rebootSoon(700);
+    }
+}
+
 } // namespace
 
 /* ------------------------------------------------------------------------- */
@@ -531,6 +658,8 @@ void begin()
     g_server.on("/api/points/write", HTTP_POST, handlePointWrite);
     g_server.on("/api/reboot", HTTP_POST, handleReboot);
     g_server.on("/api/factory-reset", HTTP_POST, handleFactoryReset);
+    g_server.on("/api/gpio", HTTP_GET, handleGpioGet);
+    g_server.on("/api/gpio", HTTP_POST, handleGpioPost);
     g_server.onNotFound(handleNotFound);
 
     g_server.begin();

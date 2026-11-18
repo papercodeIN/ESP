@@ -18,21 +18,13 @@ namespace {
 /* ------------------------------------------------------------------------- */
 /* Object table                                                              */
 /* ------------------------------------------------------------------------- */
-Object g_objects[] = {
-    /* 0 */ Object{kObjectDevice, 0},
-    /* 1 */ Object{kObjectAnalogInput, 0},
-    /* 2 */ Object{kObjectAnalogInput, 1},
-    /* 3 */ Object{kObjectAnalogInput, 2},
-    /* 4 */ Object{kObjectAnalogInput, 3},
-    /* 5 */ Object{kObjectAnalogValue, 0},
-    /* 6 */ Object{kObjectAnalogValue, 1},
-    /* 7 */ Object{kObjectBinaryInput, 0},
-    /* 8 */ Object{kObjectBinaryInput, 1},
-    /* 9 */ Object{kObjectBinaryOutput, 0},
-    /* 10 */ Object{kObjectBinaryValue, 0},
-};
+/* The built-in points occupy the first kBuiltinCount slots. Additional GPIO
+ * points configured from the web UI are appended after them at boot. */
+constexpr size_t kBuiltinCount = 11;
+constexpr size_t kMaxObjectCount = kBuiltinCount + settings::kMaxGpioPoints;
 
-constexpr size_t kObjectCount = sizeof(g_objects) / sizeof(g_objects[0]);
+Object g_objects[kMaxObjectCount];
+size_t g_objectCount = kBuiltinCount;
 
 /* ------------------------------------------------------------------------- */
 /* Property lists                                                            */
@@ -263,10 +255,10 @@ ReadStatus encodeEnumeratedArray(const uint32_t *items,
 ReadStatus encodeObjectIdArray(uint32_t arrayIndex, ByteWriter &writer)
 {
     if (arrayIndex == 0) {
-        return okOrOverflow(writer.appUnsigned(kObjectCount));
+        return okOrOverflow(writer.appUnsigned(g_objectCount));
     }
     if (arrayIndex == kArrayAll) {
-        for (size_t i = 0; i < kObjectCount; ++i) {
+        for (size_t i = 0; i < g_objectCount; ++i) {
             if (!writer.appObjectId(g_objects[i].type,
                                     g_objects[i].instance)) {
                 return ReadStatus::BufferOverflow;
@@ -274,7 +266,7 @@ ReadStatus encodeObjectIdArray(uint32_t arrayIndex, ByteWriter &writer)
         }
         return ReadStatus::Ok;
     }
-    if (arrayIndex > kObjectCount) {
+    if (arrayIndex > g_objectCount) {
         return ReadStatus::InvalidArrayIndex;
     }
     const Object &object = g_objects[arrayIndex - 1];
@@ -416,19 +408,24 @@ bool decodeBinaryValue(const Value &value, uint8_t &result)
 
 void applyBinaryOutputs()
 {
-#if BACNET_BO0_GPIO >= 0
-    for (size_t i = 0; i < kObjectCount; ++i) {
+    for (size_t i = 0; i < g_objectCount; ++i) {
         Object &object = g_objects[i];
         if (object.type != kObjectBinaryOutput) {
             continue;
         }
-        if (object.instance == 0) {
-            const bool active = object.binaryPresentValue != 0;
-            digitalWrite(BACNET_BO0_GPIO,
-                         (active && !object.outOfService) ? HIGH : LOW);
+        int8_t pin = object.gpioPin;
+#if BACNET_BO0_GPIO >= 0
+        /* Built-in BO:0 uses the compile-time pin. */
+        if (object.instance == 0 && pin < 0) {
+            pin = BACNET_BO0_GPIO;
         }
-    }
 #endif
+        if (pin < 0) {
+            continue;
+        }
+        const bool active = object.binaryPresentValue != 0;
+        digitalWrite(pin, (active && !object.outOfService) ? HIGH : LOW);
+    }
 }
 
 } // namespace
@@ -448,6 +445,25 @@ void applyDeviceIdentity()
 
 void initObjects()
 {
+    /* Reset the entire table and start with the built-in count. */
+    for (size_t i = 0; i < kMaxObjectCount; ++i) {
+        g_objects[i] = Object{};
+    }
+    g_objectCount = kBuiltinCount;
+
+    /* Built-in objects: same types and instances as before. */
+    g_objects[0] = Object{kObjectDevice, 0};
+    g_objects[1] = Object{kObjectAnalogInput, 0};
+    g_objects[2] = Object{kObjectAnalogInput, 1};
+    g_objects[3] = Object{kObjectAnalogInput, 2};
+    g_objects[4] = Object{kObjectAnalogInput, 3};
+    g_objects[5] = Object{kObjectAnalogValue, 0};
+    g_objects[6] = Object{kObjectAnalogValue, 1};
+    g_objects[7] = Object{kObjectBinaryInput, 0};
+    g_objects[8] = Object{kObjectBinaryInput, 1};
+    g_objects[9] = Object{kObjectBinaryOutput, 0};
+    g_objects[10] = Object{kObjectBinaryValue, 0};
+
     applyDeviceIdentity();
 
     Object &chipTemperature = g_objects[1];
@@ -536,6 +552,11 @@ void initObjects()
     copyText(simulation.name, sizeof(simulation.name), "Simulation Enable");
     copyText(simulation.description, sizeof(simulation.description),
              "Software-only commandable binary value");
+    /* Simulation is enabled on a fresh boot. It remains commandable from
+     * YABE, BACnet clients, and the Web UI; releasing a priority returns to
+     * this enabled default. */
+    simulation.binaryRelinquishDefault = 1;
+    simulation.binaryPresentValue = 1;
 
 #if BACNET_BO0_GPIO >= 0
     pinMode(BACNET_BO0_GPIO, OUTPUT);
@@ -546,16 +567,63 @@ void initObjects()
 #endif
 
     applyBinaryOutputs();
+
+    /* ---- Append GPIO-configured points from NVS ---- */
+    const settings::GpioConfig &gpioCfg = settings::gpio();
+    for (size_t i = 0; i < settings::kMaxGpioPoints; ++i) {
+        const settings::GpioPoint &gp = gpioCfg.points[i];
+        if (!gp.enabled) {
+            continue;
+        }
+        if (g_objectCount >= kMaxObjectCount) {
+            break;
+        }
+        const bool isOutput = (gp.kind == settings::kGpioOutput);
+        const uint16_t objType =
+            isOutput ? kObjectBinaryOutput : kObjectBinaryInput;
+
+        Object &obj = g_objects[g_objectCount];
+        obj = Object{objType, gp.instance};
+        obj.gpioPin = static_cast<int8_t>(gp.pin);
+        if (gp.name[0]) {
+            copyText(obj.name, sizeof(obj.name), gp.name);
+        } else {
+            snprintf(obj.name, sizeof(obj.name), "GPIO%u %s",
+                     static_cast<unsigned>(gp.pin),
+                     isOutput ? "Output" : "Input");
+        }
+        char desc[80];
+        snprintf(desc, sizeof(desc), "User-configured %s on %s / GPIO%u",
+                 isOutput ? "digital output" : "digital input",
+                 settings::gpioPinLabel(gp.pin),
+                 static_cast<unsigned>(gp.pin));
+        copyText(obj.description, sizeof(obj.description), desc);
+
+        if (isOutput) {
+            obj.activeText = "On";
+            obj.inactiveText = "Off";
+            pinMode(gp.pin, OUTPUT);
+            digitalWrite(gp.pin, LOW);
+        } else {
+            obj.activeText = "Active";
+            obj.inactiveText = "Inactive";
+            pinMode(gp.pin, INPUT_PULLUP);
+        }
+        ++g_objectCount;
+    }
+
+    /* Drive all outputs (built-in + GPIO-mapped) to their initial state. */
+    applyBinaryOutputs();
 }
 
 size_t objectCount()
 {
-    return kObjectCount;
+    return g_objectCount;
 }
 
 const Object *objectAt(size_t index)
 {
-    if (index >= kObjectCount) {
+    if (index >= g_objectCount) {
         return nullptr;
     }
     return &g_objects[index];
@@ -563,7 +631,7 @@ const Object *objectAt(size_t index)
 
 Object *findObject(uint16_t type, uint32_t instance)
 {
-    for (size_t i = 0; i < kObjectCount; ++i) {
+    for (size_t i = 0; i < g_objectCount; ++i) {
         if (g_objects[i].type == type && g_objects[i].instance == instance) {
             return &g_objects[i];
         }
@@ -1058,6 +1126,17 @@ void updateObjects(uint32_t nowMs)
 #else
         object->binaryPresentValue = 0;
 #endif
+    }
+
+    /* GPIO-mapped inputs configured from the web UI. */
+    for (size_t i = kBuiltinCount; i < g_objectCount; ++i) {
+        Object &obj = g_objects[i];
+        if (obj.type != kObjectBinaryInput || obj.gpioPin < 0 ||
+            obj.outOfService) {
+            continue;
+        }
+        obj.binaryPresentValue =
+            (digitalRead(obj.gpioPin) == LOW) ? 1 : 0;
     }
 }
 

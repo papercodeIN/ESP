@@ -9,8 +9,12 @@
 
 /* Wi-Fi station, used when no settings are stored yet. Leave the SSID empty
  * to always start in setup-AP mode on a fresh device. */
+#if __has_include("secrets.h")
+#include "secrets.h"
+#else
 #define OPC_DEFAULT_WIFI_SSID       ""
 #define OPC_DEFAULT_WIFI_PASS       ""
+#endif
 
 /* Setup access point, used when the station cannot connect. */
 #define OPC_DEFAULT_AP_PASS         "opcua1234"

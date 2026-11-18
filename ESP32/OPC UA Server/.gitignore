@@ -19,3 +19,4 @@ build.log
 # Python
 __pycache__/
 *.pyc
+secrets.h

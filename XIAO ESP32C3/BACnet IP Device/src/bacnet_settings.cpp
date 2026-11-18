@@ -17,7 +17,14 @@ constexpr uint16_t kVersion = 1;
 constexpr const char *kNamespace = "bacnet";
 constexpr const char *kKey = "cfg";
 
+/* GPIO mappings live under their own key so adding them does not invalidate
+ * the network/device configuration already stored on deployed devices. */
+constexpr uint32_t kGpioMagic = 0x4750494Fu; /* "GPIO" */
+constexpr uint16_t kGpioVersion = 1;
+constexpr const char *kGpioKey = "gpio";
+
 Config g_config;
+GpioConfig g_gpioConfig;
 Preferences g_prefs;
 bool g_ready = false;
 bool g_prefsOpen = false;
@@ -127,7 +134,70 @@ void sanitize(Config &config)
     config.webEnabled = config.webEnabled ? 1 : 0;
 }
 
+/* The configurable rows are fixed to the spare header pins, in order. */
+
+void gpioSanitize(GpioConfig &config)
+{
+    for (size_t i = 0; i < kMaxGpioPoints; ++i) {
+        GpioPoint &point = config.points[i];
+        point.pin = kGpioPointPins[i];
+        point.enabled = point.enabled ? 1 : 0;
+        point.activeLow = point.activeLow ? 1 : 0;
+        point.kind = (point.kind == kGpioOutput) ? kGpioOutput : kGpioInput;
+        point.name[sizeof(point.name) - 1] = '\0';
+        if (point.instance > 4194302u ||
+            (point.kind == kGpioInput && point.instance <= 1) ||
+            (point.kind == kGpioOutput && point.instance == 0)) {
+            point.instance = static_cast<uint32_t>(2 + i);
+        }
+        if (point.enabled == 0) {
+            point.name[0] = '\0';
+        }
+    }
+}
+
 } // namespace
+
+const uint8_t kGpioPointPins[kMaxGpioPoints] = {3, 4, 5, 6, 7, 10};
+
+const char *gpioPinLabel(uint8_t pin)
+{
+    switch (pin) {
+        case 3:
+            return "D1";
+        case 4:
+            return "D2";
+        case 5:
+            return "D3";
+        case 6:
+            return "D4";
+        case 7:
+            return "D5";
+        case 10:
+            return "D10";
+        default:
+            return "";
+    }
+}
+
+void setGpioDefaults(GpioConfig &config)
+{
+    memset(&config, 0, sizeof(config));
+    config.magic = kGpioMagic;
+    config.version = kGpioVersion;
+    for (size_t i = 0; i < kMaxGpioPoints; ++i) {
+        config.points[i].pin = kGpioPointPins[i];
+        config.points[i].kind = kGpioInput;
+        /* BI:0/1 and BO:0 are built in. Start every configurable row at
+         * instance 2 or higher, which is valid for either BI or BO. */
+        config.points[i].instance = static_cast<uint32_t>(2 + i);
+    }
+}
+
+const GpioConfig &gpio()
+{
+    return g_gpioConfig;
+}
 
 void begin()
 {
@@ -135,6 +205,7 @@ void begin()
         return;
     }
     setDefaults(g_config);
+    setGpioDefaults(g_gpioConfig);
 
     if (openPrefs()) {
         Config stored;
@@ -149,6 +220,24 @@ void begin()
         }
     }
     sanitize(g_config);
+
+    /* GPIO mappings: load them from their own key so older devices keep
+     * working even though the main Config layout is unchanged. */
+    if (openPrefs()) {
+        GpioConfig stored;
+        memset(&stored, 0, sizeof(stored));
+        const size_t read = g_prefs.getBytesLength(kGpioKey);
+        if (read == sizeof(GpioConfig)) {
+            if (g_prefs.getBytes(kGpioKey, &stored, sizeof(stored)) ==
+                    sizeof(stored) &&
+                stored.magic == kGpioMagic &&
+                stored.version == kGpioVersion) {
+                gpioSanitize(stored);
+                g_gpioConfig = stored;
+            }
+        }
+    }
+
     g_ready = true;
 }
 
@@ -174,10 +263,35 @@ bool save()
 bool resetToDefaults()
 {
     setDefaults(g_config);
+    setGpioDefaults(g_gpioConfig);
     if (openPrefs()) {
         g_prefs.remove(kKey);
+        g_prefs.remove(kGpioKey);
     }
     return save();
+}
+
+bool saveGpio(const GpioConfig &config)
+{
+    g_gpioConfig = config;
+    g_gpioConfig.magic = kGpioMagic;
+    g_gpioConfig.version = kGpioVersion;
+    gpioSanitize(g_gpioConfig);
+    if (!openPrefs()) {
+        return false;
+    }
+    const size_t written =
+        g_prefs.putBytes(kGpioKey, &g_gpioConfig, sizeof(g_gpioConfig));
+    return written == sizeof(g_gpioConfig);
+}
+
+bool resetGpio()
+{
+    setGpioDefaults(g_gpioConfig);
+    if (openPrefs()) {
+        g_prefs.remove(kGpioKey);
+    }
+    return saveGpio(g_gpioConfig);
 }
 
 bool wifiConfigured()

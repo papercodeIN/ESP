@@ -12,6 +12,54 @@
 
 namespace settings {
 
+/* ------------------------------------------------------------------------- */
+/* Configurable GPIO points                                                  */
+/* ------------------------------------------------------------------------- */
+/* One row per spare XIAO header pin. Rows are fixed to a pin so a pin can
+ * never be assigned twice; a row is simply disabled to free it again. */
+constexpr size_t kMaxGpioPoints = 6;
+
+enum GpioPointKind : uint8_t {
+    kGpioInput = 0,
+    kGpioOutput = 1,
+};
+
+struct GpioPoint {
+    uint8_t enabled;
+    uint8_t pin;
+    uint8_t kind;      /* GpioPointKind */
+    uint8_t activeLow; /* input: contact to GND with pull-up; output: drive
+                          low while the point is active */
+    uint32_t instance;
+    char name[33];
+};
+
+struct GpioConfig {
+    uint32_t magic;
+    uint16_t version;
+    uint16_t reserved;
+    GpioPoint points[kMaxGpioPoints];
+};
+
+/* Header pin -> GPIO number for the rows exposed in the web UI. D0 (GPIO2)
+ * and D9 (GPIO9) are reserved for the built-in BO:0 and BI:1 points. */
+extern const uint8_t kGpioPointPins[kMaxGpioPoints];
+
+/* Header label ("D1", "D2", ...) for a pin from kGpioPointPins. */
+const char *gpioPinLabel(uint8_t pin);
+
+/* Mapping table loaded from flash at begin(). */
+const GpioConfig &gpio();
+
+/* Seed a table with the default (all rows disabled) mapping. */
+void setGpioDefaults(GpioConfig &config);
+
+/* Persist a mapping table. Caller is responsible for validation. */
+bool saveGpio(const GpioConfig &config);
+
+/* Restore and persist the default mapping. */
+bool resetGpio();
+
 struct Config {
     /* Wi-Fi */
     char hostname[33];
