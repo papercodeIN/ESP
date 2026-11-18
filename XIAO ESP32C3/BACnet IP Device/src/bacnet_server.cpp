@@ -342,12 +342,38 @@ void Server::handleNpdu(const uint8_t *data,
         /* Network layer message (routing), not handled by this device. */
         return;
     }
-    if (control & (0x20 | 0x08)) {
-        /* Destination or source specifier present: routed NPDU. This
-         * device is a plain BACnet/IP endpoint and does not route. */
-        return;
+    size_t offset = 2;
+    if (control & 0x20) {
+        /* Destination specifier present: DNET(2) DLEN(1) [DADR(DLEN)]
+         * HOP(1). DNET 0xFFFF with DLEN 0 is the standard global
+         * broadcast that discovery clients use; it must be processed
+         * locally even though this device never routes. Any other DNET
+         * targets a different network, which only a router could reach. */
+        if (length < 6) {
+            return;
+        }
+        const uint16_t dnet =
+            static_cast<uint16_t>((data[2] << 8) | data[3]);
+        const uint8_t dlen = data[4];
+        if (dnet != 0xFFFF || dlen != 0) {
+            return;
+        }
+        offset = 6;
     }
-    handleApdu(data + 2, length - 2, remoteIp, remotePort);
+    if (control & 0x10) {
+        /* Source specifier present: SNET(2) SLEN(1) SADR(SLEN). Replies
+         * go to the UDP sender address, so skip the field without
+         * keeping it. */
+        if (length < offset + 3) {
+            return;
+        }
+        const uint8_t slen = data[offset + 2];
+        offset += 3 + slen;
+        if (length < offset) {
+            return;
+        }
+    }
+    handleApdu(data + offset, length - offset, remoteIp, remotePort);
 }
 
 void Server::handleApdu(const uint8_t *data,
