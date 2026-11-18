@@ -81,6 +81,10 @@ void attemptWifi()
     settings::Config &config = settings::get();
 
     WiFi.persistent(false);
+    if (g_portalActive) {
+        WiFi.softAPdisconnect(true);
+        g_portalActive = false;
+    }
     if (WiFi.getMode() != WIFI_STA) {
         WiFi.mode(WIFI_STA);
     }
@@ -189,6 +193,8 @@ void startBacnet()
     }
 
     if (!g_server.begin(config.bacnetPort)) {
+        Serial.printf("[BACnet] UDP bind failed on port %u\n",
+                      static_cast<unsigned>(config.bacnetPort));
         return;
     }
 
@@ -322,6 +328,7 @@ void appLoop()
     if (connected) {
         if (!g_lastConnected) {
             g_everConnected = true;
+            g_portalActive = false;
             Serial.printf("[WiFi] Connected: %s (%d dBm)\n",
                           WiFi.localIP().toString().c_str(),
                           WiFi.RSSI());
@@ -336,14 +343,13 @@ void appLoop()
     } else if (!g_everConnected) {
         if (!settings::wifiConfigured()) {
             startPortal();
-        } else {
+        } else if (!g_portalActive) {
             attemptWifi();
-            if (!g_portalActive &&
-                (millis() - g_bootMs) > kPortalFallbackMs) {
+            if ((millis() - g_bootMs) > kPortalFallbackMs) {
                 startPortal();
             }
         }
-    } else if (!g_portalActive) {
+    } else {
         attemptWifi();
     }
 
