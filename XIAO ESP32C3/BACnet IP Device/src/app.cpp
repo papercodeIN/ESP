@@ -14,6 +14,8 @@
 #include <Arduino.h>
 #include <ESPmDNS.h>
 #include <WiFi.h>
+#include <esp_system.h>
+#include <esp_task_wdt.h>
 
 #include "bacnet_config.h"
 #include "bacnet_objects.h"
@@ -32,6 +34,10 @@ bool g_portalActive = false;
 bool g_mdnsStarted = false;
 bool g_everConnected = false;
 bool g_lastConnected = false;
+esp_reset_reason_t g_resetReason = ESP_RST_UNKNOWN;
+RTC_DATA_ATTR uint32_t g_rtcBootCount = 0;
+uint32_t g_bootCount = 0;
+bool g_watchdogReady = false;
 
 bool g_wifiAttempted = false;
 uint32_t g_lastWifiAttemptMs = 0;
@@ -39,6 +45,22 @@ uint32_t g_bootMs = 0;
 
 constexpr uint32_t kWifiRetryIntervalMs = 15000;
 constexpr uint32_t kPortalFallbackMs = 25000;
+
+const char *resetReasonName(esp_reset_reason_t reason)
+{
+    switch (reason) {
+        case ESP_RST_POWERON: return "power-on";
+        case ESP_RST_SW: return "software";
+        case ESP_RST_PANIC: return "panic";
+        case ESP_RST_INT_WDT: return "interrupt-watchdog";
+        case ESP_RST_TASK_WDT: return "task-watchdog";
+        case ESP_RST_WDT: return "watchdog";
+        case ESP_RST_BROWNOUT: return "brownout";
+        case ESP_RST_EXT: return "external";
+        case ESP_RST_DEEPSLEEP: return "deep-sleep";
+        default: return "unknown";
+    }
+}
 
 /* ------------------------------------------------------------------------- */
 /* Wi-Fi                                                                     */
@@ -87,6 +109,22 @@ void attemptWifi()
     Serial.printf("[WiFi] Connecting to \"%s\"...\n", config.wifiSsid);
     WiFi.begin(config.wifiSsid,
                config.wifiPassword[0] ? config.wifiPassword : nullptr);
+}
+
+void forceSafeOutputs()
+{
+    for (size_t i = 0; i < bacnet::objectCount(); ++i) {
+        const bacnet::Object *object = bacnet::objectAt(i);
+        if (!object || object->type != bacnet::kObjectBinaryOutput ||
+            object->gpioPin < 0) {
+            continue;
+        }
+        const int level = object->activeLow ? HIGH : LOW;
+        digitalWrite(object->gpioPin, level);
+    }
+#if BACNET_BO0_GPIO >= 0
+    digitalWrite(BACNET_BO0_GPIO, LOW);
+#endif
 }
 
 void startPortal()
@@ -178,6 +216,18 @@ void appSetup()
     delay(300);
 #endif
 
+    g_resetReason = esp_reset_reason();
+    g_bootCount = ++g_rtcBootCount;
+#if BACNET_ENABLE_SERIAL
+    Serial.printf("[System] Boot %lu, reset reason: %s\n",
+                  static_cast<unsigned long>(g_bootCount),
+                  resetReasonName(g_resetReason));
+#endif
+    if (esp_task_wdt_init(10, true) == ESP_OK &&
+        esp_task_wdt_add(nullptr) == ESP_OK) {
+        g_watchdogReady = true;
+    }
+
     settings::begin();
     settings::Config &config = settings::get();
 
@@ -196,6 +246,7 @@ void appSetup()
 #endif
 
     bacnet::initObjects();
+    forceSafeOutputs();
 
     g_bootMs = millis();
 
@@ -211,10 +262,52 @@ void appSetup()
     }
 }
 
+void appPrepareRestart()
+{
+    forceSafeOutputs();
+    if (g_serverStarted) {
+        g_server.stop();
+        g_serverStarted = false;
+    }
+}
+
+const char *appResetReason()
+{
+    return resetReasonName(g_resetReason);
+}
+
+uint32_t appBootCount()
+{
+    return g_bootCount;
+}
+
+uint32_t appBacnetRxPackets()
+{
+    return g_server.rxPackets();
+}
+
+uint32_t appBacnetDroppedPackets()
+{
+    return g_server.droppedPackets();
+}
+
+uint32_t appBacnetTxErrors()
+{
+    return g_server.txErrors();
+}
+
+size_t appActiveCovSubscriptions()
+{
+    return g_server.activeCovSubscriptions();
+}
+
 void appLoop()
 {
     settings::Config &config = settings::get();
     const bool connected = WiFi.status() == WL_CONNECTED;
+    if (g_watchdogReady) {
+        esp_task_wdt_reset();
+    }
 
     /* Start the web server lazily (see appSetup): its sockets need the
      * TCP/IP stack, which is only guaranteed to be up once the setup

@@ -392,6 +392,9 @@ bool decodeApplicationValue(ByteReader &reader, Value &value)
             return length == 0;
 
         case 1: /* BOOLEAN - clause 20.2.3: the LVT field is the value */
+            if (length > 1) {
+                return false;
+            }
             value.type = Value::Boolean;
             value.boolean = (length != 0);
             return true;

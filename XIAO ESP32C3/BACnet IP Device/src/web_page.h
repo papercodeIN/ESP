@@ -414,7 +414,8 @@ function loadSettings(){
     $("#f-gw").value=s.gw||"";
     $("#f-mask").value=s.mask||"";
     $("#f-dns").value=s.dns||"";
-    $("#f-appass").value=s.apPass||"";
+    $("#f-appass").value="";
+    $("#f-appass").placeholder=s.hasApPass?"Stored password - leave empty to keep":"Empty = open setup AP";
     $("#f-instance").value=s.instance;
     $("#f-name").value=s.name||"";
     $("#f-desc").value=s.desc||"";

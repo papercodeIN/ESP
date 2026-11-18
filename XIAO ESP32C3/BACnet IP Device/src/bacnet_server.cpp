@@ -235,6 +235,9 @@ bool Server::begin(uint16_t port)
 {
     port_ = port;
     udp_.stop();
+    for (auto &subscription : cov_) {
+        subscription.active = false;
+    }
     if (!udp_.begin(port_)) {
         BACNET_LOG("[BACnet] Failed to bind UDP port %u\n",
                    static_cast<unsigned>(port_));
@@ -247,10 +250,30 @@ bool Server::begin(uint16_t port)
     return true;
 }
 
+void Server::stop()
+{
+    udp_.stop();
+    for (auto &subscription : cov_) {
+        subscription.active = false;
+    }
+}
+
+size_t Server::activeCovSubscriptions() const
+{
+    size_t count = 0;
+    for (const auto &subscription : cov_) {
+        if (subscription.active) {
+            ++count;
+        }
+    }
+    return count;
+}
+
 void Server::run()
 {
     const int available = udp_.parsePacket();
     if (available > 0) {
+        ++rxPackets_;
         const IPAddress remoteIp = udp_.remoteIP();
         const uint16_t remotePort = udp_.remotePort();
         const int length = udp_.read(rx_, sizeof(rx_));
@@ -287,7 +310,8 @@ void Server::handleDatagram(const uint8_t *data,
                             IPAddress remoteIp,
                             uint16_t remotePort)
 {
-    if (length < 4 || data[0] != 0x81) {
+    if (length < 6 || length > sizeof(rx_) || data[0] != 0x81) {
+        ++droppedPackets_;
         return;
     }
     const uint8_t function = data[1];
@@ -297,7 +321,9 @@ void Server::handleDatagram(const uint8_t *data,
     }
     const uint16_t bvlcLength =
         static_cast<uint16_t>((data[2] << 8) | data[3]);
-    if (bvlcLength < 4 || bvlcLength > length) {
+    if (bvlcLength < 6 || bvlcLength != length ||
+        bvlcLength > kMaxApdu + 6) {
+        ++droppedPackets_;
         return;
     }
     handleNpdu(data + 4, bvlcLength - 4, remoteIp, remotePort);
@@ -452,7 +478,7 @@ CovSubscription *Server::reserveCovSubscription()
     /* Table full: recycle the subscription that expires soonest. Slots
      * without a lifetime (0) count as infinite and are taken last. */
     CovSubscription *candidate = nullptr;
-    uint32_t bestRemaining = 0;
+    uint32_t bestRemaining = 0xFFFFFFFFu;
     const uint32_t now = millis();
     for (size_t i = 0; i < kMaxCovSubscriptions; ++i) {
         CovSubscription &sub = cov_[i];
@@ -1053,9 +1079,10 @@ void Server::sendApdu(IPAddress destination,
 
     logFrame(broadcast ? "TXb" : "TX", tx_ + 6, apduLength);
 
-    udp_.beginPacket(destination, destinationPort);
-    udp_.write(tx_, totalLength);
-    udp_.endPacket();
+    if (!udp_.beginPacket(destination, destinationPort) ||
+        udp_.write(tx_, totalLength) != totalLength || !udp_.endPacket()) {
+        ++txErrors_;
+    }
 }
 
 void Server::sendSimpleAck(uint8_t invokeId,

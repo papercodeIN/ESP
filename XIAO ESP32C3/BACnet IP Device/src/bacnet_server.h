@@ -43,6 +43,11 @@ class Server {
     void sendIAm();
 
     uint16_t port() const { return port_; }
+    void stop();
+    uint32_t rxPackets() const { return rxPackets_; }
+    uint32_t droppedPackets() const { return droppedPackets_; }
+    uint32_t txErrors() const { return txErrors_; }
+    size_t activeCovSubscriptions() const;
 
   private:
     void handleDatagram(const uint8_t *data,
@@ -120,6 +125,9 @@ class Server {
 
     uint32_t startupMs_ = 0;
     uint32_t lastStartupIAmMs_ = 0;
+    uint32_t rxPackets_ = 0;
+    uint32_t droppedPackets_ = 0;
+    uint32_t txErrors_ = 0;
 };
 
 } // namespace bacnet

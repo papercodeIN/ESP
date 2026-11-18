@@ -23,6 +23,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "app.h"
 #include "bacnet_config.h"
 #include "bacnet_objects.h"
 #include "bacnet_settings.h"
@@ -104,6 +105,7 @@ void sendJson(int code, const String &body)
 
 void rebootSoon(uint32_t delayMs)
 {
+    appPrepareRestart();
     g_restartAtMs = millis() + delayMs;
     if (g_restartAtMs == 0) {
         g_restartAtMs = 1;
@@ -170,6 +172,32 @@ void handleStatus()
     sendJson(200, json);
 }
 
+void handleDiagnostics()
+{
+    String json;
+    json.reserve(700);
+    json += "{\"resetReason\":\"";
+    json += appResetReason();
+    json += "\",\"bootCount\":";
+    json += static_cast<unsigned long>(appBootCount());
+    json += ",\"freeHeap\":";
+    json += static_cast<unsigned long>(ESP.getFreeHeap());
+    json += ",\"wifiConnected\":";
+    json += WiFi.status() == WL_CONNECTED ? "true" : "false";
+    json += ",\"portal\":";
+    json += (WiFi.getMode() & WIFI_MODE_AP) ? "true" : "false";
+    json += ",\"bacnetRx\":";
+    json += static_cast<unsigned long>(appBacnetRxPackets());
+    json += ",\"bacnetDropped\":";
+    json += static_cast<unsigned long>(appBacnetDroppedPackets());
+    json += ",\"bacnetTxErrors\":";
+    json += static_cast<unsigned long>(appBacnetTxErrors());
+    json += ",\"covSubscriptions\":";
+    json += static_cast<unsigned>(appActiveCovSubscriptions());
+    json += "}";
+    sendJson(200, json);
+}
+
 void handleSettingsGet()
 {
     settings::Config &cfg = settings::get();
@@ -192,9 +220,9 @@ void handleSettingsGet()
     json += jsonEscape(cfg.subnet);
     json += "\",\"dns\":\"";
     json += jsonEscape(cfg.dns);
-    json += "\",\"apPass\":\"";
-    json += jsonEscape(cfg.apPassword);
-    json += "\",\"instance\":";
+    json += "\",\"hasApPass\":";
+    json += cfg.apPassword[0] ? "true" : "false";
+    json += ",\"instance\":";
     json += static_cast<unsigned long>(cfg.deviceInstance);
     json += ",\"name\":\"";
     json += jsonEscape(cfg.deviceName);
@@ -803,6 +831,7 @@ void begin()
     g_server.on("/index.html", HTTP_GET, handleRoot);
     g_server.on("/favicon.ico", HTTP_GET, handleFavicon);
     g_server.on("/api/status", HTTP_GET, handleStatus);
+    g_server.on("/api/diagnostics", HTTP_GET, handleDiagnostics);
     g_server.on("/api/settings", HTTP_GET, handleSettingsGet);
     g_server.on("/api/settings", HTTP_POST, handleSettingsPost);
     g_server.on("/api/points", HTTP_GET, handlePoints);
