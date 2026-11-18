@@ -204,37 +204,42 @@ void writeLiveValue(size_t index, const char *text)
     }
 }
 
-void applyVariant(size_t index, UA_DataValue *value, bool includeStamp)
+UA_StatusCode applyVariant(size_t index, UA_DataValue *value, bool includeStamp)
 {
     const TagDef &def = k_tags[index];
     char text[VALUE_TEXT_MAX];
     readLiveValue(index, text, sizeof(text));
 
+    UA_StatusCode rv = UA_STATUSCODE_GOOD;
     switch (def.uaType) {
     case UA_TYPES_STRING: {
         UA_String s = UA_STRING(text);
-        UA_Variant_setScalarCopy(&value->value, &s, &UA_TYPES[UA_TYPES_STRING]);
+        rv = UA_Variant_setScalarCopy(&value->value, &s, &UA_TYPES[UA_TYPES_STRING]);
         break;
     }
     case UA_TYPES_DOUBLE: {
         UA_Double d = atof(text);
-        UA_Variant_setScalarCopy(&value->value, &d, &UA_TYPES[UA_TYPES_DOUBLE]);
+        rv = UA_Variant_setScalarCopy(&value->value, &d, &UA_TYPES[UA_TYPES_DOUBLE]);
         break;
     }
     case UA_TYPES_BOOLEAN: {
         UA_Boolean b = (strcmp(text, "true") == 0);
-        UA_Variant_setScalarCopy(&value->value, &b, &UA_TYPES[UA_TYPES_BOOLEAN]);
+        rv = UA_Variant_setScalarCopy(&value->value, &b, &UA_TYPES[UA_TYPES_BOOLEAN]);
         break;
     }
     default:
         break;
     }
 
+    if (rv != UA_STATUSCODE_GOOD) {
+        return rv;   /* e.g. allocation failure: don't report an empty value */
+    }
     value->hasValue = true;
     if (includeStamp) {
         value->hasSourceTimestamp = true;
         value->sourceTimestamp = UA_DateTime_now();
     }
+    return UA_STATUSCODE_GOOD;
 }
 
 void saveVariantToState(size_t index, const UA_DataValue *value)
@@ -285,8 +290,7 @@ UA_StatusCode onRead(UA_Server *server, const UA_NodeId *sessionId,
         return UA_STATUSCODE_BADNODEIDUNKNOWN;
     }
     UA_DataValue_init(value);
-    applyVariant(static_cast<size_t>(index), value, includeSourceTimeStamp);
-    return UA_STATUSCODE_GOOD;
+    return applyVariant(static_cast<size_t>(index), value, includeSourceTimeStamp);
 }
 
 UA_StatusCode onWrite(UA_Server *server, const UA_NodeId *sessionId,

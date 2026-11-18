@@ -177,6 +177,7 @@ bool doConnect()
     if (!g_client) {
         setError("client allocation failed");
         g_state = State::Error;
+        g_nextAttemptMs = millis() + OPC_RECONNECT_BACKOFF_MS;
         return false;
     }
 
@@ -186,6 +187,7 @@ bool doConnect()
         setErrorCode(rv, "client config");
         teardownClient();
         g_state = State::Error;
+        g_nextAttemptMs = millis() + OPC_RECONNECT_BACKOFF_MS;
         return false;
     }
     cfg->timeout = OPC_CLIENT_TIMEOUT_MS;
@@ -201,6 +203,7 @@ bool doConnect()
         setErrorCode(rv, "connect");
         teardownClient();
         g_state = State::Error;
+        g_nextAttemptMs = millis() + OPC_RECONNECT_BACKOFF_MS;
         return false;
     }
 
@@ -301,7 +304,11 @@ void iterate()
 {
     uint32_t now = millis();
 
-    if (g_state == State::Connecting && g_nextAttemptMs && now >= g_nextAttemptMs) {
+    /* Connecting: first (or user-forced) attempt. Error: a failed attempt
+     * scheduled for another try after the backoff, matching the documented
+     * "connection failures retry every 10 s" behaviour. */
+    if ((g_state == State::Connecting || g_state == State::Error) &&
+        g_nextAttemptMs && now >= g_nextAttemptMs) {
         g_nextAttemptMs = 0;
         doConnect();
     } else if (g_state == State::Connected) {
@@ -345,6 +352,7 @@ void disconnectNow()
 {
     teardownClient();
     g_state = State::Idle;
+    g_nextAttemptMs = 0;
     setError("");
 }
 

@@ -370,7 +370,10 @@ class Device:
         if ns != 1 or not isinstance(ident, str):
             return False
         if ident == "Setpoint" and value is not None:
-            self.setpoint = float(value)
+            try:
+                self.setpoint = float(value)
+            except (TypeError, ValueError):
+                return False   # keep the session alive on a malformed write
             print("  write Setpoint = %.3f" % self.setpoint)
             return True
         if ident == "RelayOutput" and value is not None:
@@ -651,7 +654,8 @@ class Session:
             tr = R(token_body)
             pid = tr.string()
             if pid == "anonymous":
-                status = 0
+                # Anonymous is only accepted when no username is required
+                status = 0 if not self.require_user else 0x80200000
             elif pid == "username":
                 # typeId 322 body: userName string + password = extobj
                 # (the password is passed inside an encrypted/NULL extobj)
@@ -678,8 +682,10 @@ class Session:
         self.respond(SVC_ACTIVATE_SESSION + 1, body, status=status)
         if status == 0:
             self.authenticated = True
-            print("  session activated (%s)"
-                  % ("anonymous" if not self.require_user else self.require_user))
+            if self.require_user:
+                print("  session activated (user %s)" % self.require_user)
+            else:
+                print("  session activated (anonymous)")
 
     def read_body(self, w, values):
         w.i32(len(values))

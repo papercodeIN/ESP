@@ -304,8 +304,19 @@ function copyEndpoint() {
 }
 
 const tagInputs = {};
+const tagValueCells = {};
+let tagRowsBuilt = false;
 function renderTags(tags) {
   const tbody = $('tagrows');
+  if (tagRowsBuilt) {
+    /* Refresh the value cells only — rebuilding the table would steal
+     * focus from the write inputs every poll. */
+    for (const t of tags) {
+      const cell = tagValueCells[t.id];
+      if (cell) cell.textContent = t.valid ? t.value : '-';
+    }
+    return;
+  }
   tbody.innerHTML = '';
   for (const t of tags) {
     const tr = document.createElement('tr');
@@ -321,6 +332,7 @@ function renderTags(tags) {
     const valCell = document.createElement('td');
     valCell.textContent = t.valid ? t.value : '-';
     valCell.style.fontFamily = 'ui-monospace,Consolas,monospace';
+    tagValueCells[t.id] = valCell;
     tr.append(idCell, nameCell, typeCell, valCell);
 
     const writeCell = document.createElement('td');
@@ -351,6 +363,7 @@ function renderTags(tags) {
     tr.appendChild(writeCell);
     tbody.appendChild(tr);
   }
+  tagRowsBuilt = true;
 }
 
 async function loadTags() {

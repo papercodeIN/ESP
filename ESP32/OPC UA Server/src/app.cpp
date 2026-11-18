@@ -136,16 +136,20 @@ void tick()
         g_lastRefresh = millis();
         opcua::refreshCache();
 
-        if (g_mode == Mode::Station && WiFi.status() != WL_CONNECTED) {
-            printf("APP: Wi-Fi lost, reconnecting\n");
-            WiFi.disconnect();
-            WiFi.begin(settings::get().wifiSsid, settings::get().wifiPass);
-            g_stationFailed = true;
-            g_reconnectCheckAt = millis() + 25000;
-        } else if (g_stationFailed && g_reconnectCheckAt &&
-                   millis() >= g_reconnectCheckAt) {
-            g_reconnectCheckAt = 0;
-            if (WiFi.status() != WL_CONNECTED) {
+        if (g_mode == Mode::Station) {
+            if (WiFi.status() == WL_CONNECTED) {
+                g_stationFailed = false;
+                g_reconnectCheckAt = 0;
+            } else if (!g_stationFailed) {
+                /* One reconnect attempt, then wait for the deadline before
+                 * falling back to the setup AP. */
+                printf("APP: Wi-Fi lost, reconnecting\n");
+                WiFi.disconnect();
+                WiFi.begin(settings::get().wifiSsid, settings::get().wifiPass);
+                g_stationFailed = true;
+                g_reconnectCheckAt = millis() + 25000;
+            } else if (g_reconnectCheckAt && millis() >= g_reconnectCheckAt) {
+                g_reconnectCheckAt = 0;
                 printf("APP: Wi-Fi unreachable, starting setup AP\n");
                 startSetupAp();
                 g_mode = Mode::SetupAp;

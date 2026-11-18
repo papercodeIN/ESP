@@ -231,6 +231,9 @@ void handleTags()
         if (i) {
             json += ",";
         }
+        char sourceTs[24];
+        snprintf(sourceTs, sizeof(sourceTs), "%lld",
+                 static_cast<long long>(t.sourceTsMs));
         json += "{";
         json += "\"slot\":" + String(i);
         json += ",\"enabled\":" + String(t.enabled ? "true" : "false");
@@ -239,7 +242,7 @@ void handleTags()
         json += ",\"ok\":" + String(t.ok ? "true" : "false");
         json += ",\"value\":\"" + jsonEscape(t.value) + "\"";
         json += ",\"status\":\"" + String(t.ok ? "Good" : "Bad") + "\"";
-        json += ",\"sourceTs\":" + String(static_cast<long>(t.sourceTsMs));
+        json += ",\"sourceTs\":" + String(sourceTs);
         json += ",\"updatedAt\":" + String(t.updatedAtMs);
         json += "}";
     }

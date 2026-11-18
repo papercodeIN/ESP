@@ -21,6 +21,7 @@ import struct
 import sys
 import time
 import random
+import uuid
 
 POLICY_NONE = "http://opcfoundation.org/UA/SecurityPolicy#None"
 
@@ -103,11 +104,20 @@ class W:
         self.i32(count)
 
     def nodeid(self, ns, ident):
-        """Numeric identifier unless `ident` is a str (string identifier)."""
+        """Numeric identifier unless `ident` is a str, UUID or bytes."""
         if isinstance(ident, str):
             self.u8(0x03)
             self.u16(ns)
             self.string(ident)
+        elif isinstance(ident, uuid.UUID):
+            # GUID: data1/data2/data3 little-endian, data4 big-endian
+            self.u8(0x04)
+            self.u16(ns)
+            self.b += ident.bytes_le
+        elif isinstance(ident, (bytes, bytearray)):
+            self.u8(0x05)
+            self.u16(ns)
+            self.bytestring(bytes(ident))
         elif ns < 256 and ident <= 0xFF:
             self.u8(0x00)
             self.u8(ident)
@@ -230,6 +240,11 @@ class R:
             return self.u16(), self.u32()
         if kind == 0x03:
             return self.u16(), self.string()
+        if kind == 0x04:
+            # GUID (open62541 session ids / authentication tokens)
+            return self.u16(), uuid.UUID(bytes_le=bytes(self.take(16)))
+        if kind == 0x05:
+            return self.u16(), self.bytestring()
         raise EncodeError("unsupported NodeId encoding 0x%02X" % kind)
 
     def localized_text(self):
@@ -270,23 +285,30 @@ class R:
     def _scalar(self, t):
         if t == VT_BOOLEAN:
             return self.boolean()
+        if t == 2:   # SByte
+            return struct.unpack("<b", self.take(1))[0]
+        if t == 3:   # Byte
+            return self.take(1)[0]
+        if t == 4:   # Int16
+            return struct.unpack("<h", self.take(2))[0]
+        if t == 5:   # UInt16
+            return struct.unpack("<H", self.take(2))[0]
+        if t == 6:   # Int32
+            return self.i32()
+        if t == 7:   # UInt32
+            return self.u32()
+        if t == 8:   # Int64
+            return self.i64()
+        if t == 9:   # UInt64
+            return self.u64()
+        if t == 10:  # Float (4 bytes)
+            return struct.unpack("<f", self.take(4))[0]
         if t == VT_DOUBLE:
             return self.f64()
         if t == VT_STRING:
             return self.string()
         if t == VT_DATETIME:
             return self.i64()
-        if t in (2, 3, 4, 5):
-            return {"2": self.i32, "3": self.i32, "4": self.i32, "5": self.u32}[str(t)]() \
-                if False else (self.i32() if t in (2, 4) else self.u32())
-        if t in (6, 7):
-            return self.i32() if t == 6 else self.u32()
-        if t in (8, 9):
-            return self.i64() if t == 8 else self.u64()
-        if t == 10:
-            return self.f64()
-        if t == 11:
-            return self.f64()
         raise EncodeError("unsupported scalar type %d" % t)
 
     def u64(self):
@@ -502,7 +524,7 @@ class Client:
             raise EncodeError("unexpected GetEndpointsResponse node id %s" % (node,))
         n = r.i32()
         self.endpoints = [r.endpoint_description() for _ in range(max(n, 0))]
-        r.array_len() if False else r.i32()   # diagnosticInfos
+        r.i32()                  # diagnosticInfos
         return status, self.endpoints
 
     def create_session(self, url):
@@ -640,8 +662,9 @@ def main():
         checks.append(ok)
         print("[%s] %-28s %s" % ("PASS" if ok else "FAIL", name, detail))
 
-    client = Client(args.host, args.port)
+    client = None
     try:
+        client = Client(args.host, args.port)
         ack = client.hello()
         check("HEL/ACK", True,
               "buffers %d/%d" % (ack["receive"], ack["send"]))
@@ -709,7 +732,8 @@ def main():
     except (EncodeError, socket.timeout, ConnectionError, OSError) as exc:
         check("transport", False, str(exc))
     finally:
-        client.sock.close()
+        if client is not None:
+            client.sock.close()
 
     passed = sum(1 for c in checks if c)
     print()

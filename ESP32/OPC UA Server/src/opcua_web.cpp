@@ -84,7 +84,7 @@ void handleStatus()
     json += ",\"ssid\":\"" + jsonEscape(ssidShown.c_str()) + "\"";
     json += ",\"hostname\":\"" + jsonEscape(s.hostname) + "\"";
     json += ",\"ip\":\"" + app::ipAddress() + "\"";
-    json += ",\"rssi\":" + String(app::mode() == app::Mode::Station ? WiFi.RSSI() : 0);
+    json += ",\"rssi\":" + String(app::mode() == app::Mode::Station && WiFi.status() == WL_CONNECTED ? WiFi.RSSI() : 0);
     json += ",\"uptime\":" + String(millis() / 1000);
     json += ",\"heap\":" + String(ESP.getFreeHeap());
     json += ",\"connected\":" + String(app::mode() == app::Mode::Station && WiFi.status() == WL_CONNECTED ? "true" : "false");
@@ -123,6 +123,9 @@ void handlePostSettings()
 {
     settings::Settings &s = settings::get();
     bool wifiChanged = false;
+    /* Everything below only takes effect after the stack restarts
+     * (mDNS name, OPC UA port/identity, setup AP). */
+    bool needsRestart = false;
 
     if (g_server.hasArg("wifiSsid")) {
         char ssid[33];
@@ -138,7 +141,10 @@ void handlePostSettings()
         copyText(s.wifiPass, sizeof(s.wifiPass), pass);
     }
     if (g_server.hasArg("hostname")) {
-        copyText(s.hostname, sizeof(s.hostname), g_server.arg("hostname").c_str());
+        char host[33];
+        copyText(host, sizeof(host), g_server.arg("hostname").c_str());
+        needsRestart = needsRestart || strcmp(host, s.hostname) != 0;
+        copyText(s.hostname, sizeof(s.hostname), host);
     }
     s.dhcp = g_server.hasArg("dhcp");
     if (g_server.hasArg("ip")) {
@@ -151,26 +157,36 @@ void handlePostSettings()
         copyText(s.netmask, sizeof(s.netmask), g_server.arg("netmask").c_str());
     }
     if (g_server.hasArg("apPass") && g_server.arg("apPass").length()) {
-        copyText(s.apPass, sizeof(s.apPass), g_server.arg("apPass").c_str());
+        char apPass[17];
+        copyText(apPass, sizeof(apPass), g_server.arg("apPass").c_str());
+        needsRestart = needsRestart || strcmp(apPass, s.apPass) != 0;
+        copyText(s.apPass, sizeof(s.apPass), apPass);
     }
     if (g_server.hasArg("port")) {
         int port = g_server.arg("port").toInt();
         if (port > 0 && port < 65536) {
+            needsRestart = needsRestart || static_cast<uint16_t>(port) != s.port;
             s.port = static_cast<uint16_t>(port);
         }
     }
     if (g_server.hasArg("deviceName")) {
-        copyText(s.deviceName, sizeof(s.deviceName), g_server.arg("deviceName").c_str());
+        char deviceName[33];
+        copyText(deviceName, sizeof(deviceName), g_server.arg("deviceName").c_str());
+        needsRestart = needsRestart || strcmp(deviceName, s.deviceName) != 0;
+        copyText(s.deviceName, sizeof(s.deviceName), deviceName);
     }
     if (g_server.hasArg("endpointHost")) {
-        copyText(s.endpointHost, sizeof(s.endpointHost), g_server.arg("endpointHost").c_str());
+        char endpointHost[64];
+        copyText(endpointHost, sizeof(endpointHost), g_server.arg("endpointHost").c_str());
+        needsRestart = needsRestart || strcmp(endpointHost, s.endpointHost) != 0;
+        copyText(s.endpointHost, sizeof(s.endpointHost), endpointHost);
     }
 
     settings::save();
     g_server.send(200, "application/json",
                   "{\"ok\":true,\"wifiChanged\":" + String(wifiChanged ? "true" : "false") + "}");
-    if (wifiChanged) {
-        g_restartAtMs = millis() + 1500;   /* apply Wi-Fi changes cleanly */
+    if (wifiChanged || needsRestart) {
+        g_restartAtMs = millis() + 1500;   /* apply the changes cleanly */
     }
 }
 
@@ -206,8 +222,8 @@ void handleTagWrite()
     String id = g_server.arg("id");
     String value = g_server.arg("value");
 
-    if (!id.length()) {
-        g_server.send(400, "application/json", "{\"ok\":false,\"error\":\"missing id\"}");
+    if (!id.length() || !value.length()) {
+        g_server.send(400, "application/json", "{\"ok\":false,\"error\":\"missing id or value\"}");
         return;
     }
     if (!opcua::writeTag(id.c_str(), value.c_str())) {

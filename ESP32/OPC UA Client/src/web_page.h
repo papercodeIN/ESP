@@ -214,10 +214,11 @@ function fmtBytes(n) {
   return n > 1048576 ? (n / 1048576).toFixed(1) + ' MB'
        : n > 1024 ? (n / 1024).toFixed(1) + ' kB' : n + ' B';
 }
-function fmtAgo(ms) {
+function fmtAgo(ms, upSeconds) {
   if (!ms) return 'never';
-  const d = Date.now() - ms;   /* board millis vs. page time is close enough */
-  return (d / 1000).toFixed(0) + ' s ago';
+  /* Board millis compared against the uptime reported in the same response. */
+  const d = Math.max(0, (upSeconds * 1000 - ms) / 1000);
+  return d.toFixed(0) + ' s ago';
 }
 
 async function loadStatus() {
@@ -237,7 +238,7 @@ async function loadStatus() {
     $('s-err').textContent = s.lastError || 'none';
     $('s-ok').textContent = s.readsOk;
     $('s-fail').textContent = s.readsFailed;
-    $('s-lastread').textContent = fmtAgo(s.lastReadAt);
+    $('s-lastread').textContent = fmtAgo(s.lastReadAt, s.uptime);
     $('s-mode').textContent = s.mode === 'setup-ap' ? 'Setup AP' : 'Station';
     $('s-ssid').textContent = s.ssid || '-';
     $('s-ip').textContent = s.ip;
@@ -314,6 +315,10 @@ async function saveConnection() {
 }
 
 let slotRows = [];
+function esc(v) {
+  return String(v ?? '').replace(/[&<>"']/g, c =>
+    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
 function renderSlots(tags) {
   slotRows = [];
   const tbody = $('tagrows');
@@ -325,11 +330,11 @@ function renderSlots(tags) {
     const tr = document.createElement('tr');
     tr.innerHTML =
       '<td><input type="checkbox" data-f="enabled"' + (t.enabled ? ' checked' : '') + '></td>' +
-      '<td><input type="number" data-f="ns" min="0" max="65535" value="' + (t.ns ?? 0) + '"></td>' +
+      '<td><input type="number" data-f="ns" min="0" max="65535" value="' + esc(t.ns ?? 0) + '"></td>' +
       '<td><select data-f="type"><option value="string"' + (t.stringId ? ' selected' : '') + '>string</option>' +
       '<option value="numeric"' + (!t.stringId ? ' selected' : '') + '>numeric</option></select></td>' +
-      '<td><input class="wide" data-f="ident" value="' + (t.ident ?? '') + '"></td>' +
-      '<td><input class="wide" data-f="name" value="' + (t.name ?? '') + '"></td>' +
+      '<td><input class="wide" data-f="ident" value="' + esc(t.ident) + '"></td>' +
+      '<td><input class="wide" data-f="name" value="' + esc(t.name) + '"></td>' +
       '<td id="live-' + i + '" style="font-family:ui-monospace,Consolas,monospace">-</td>' +
       '<td id="stat-' + i + '"><span class="muted">-</span></td>';
     tbody.appendChild(tr);
