@@ -28,3 +28,15 @@ $\color{Green}\Huge{\textbf{ESP32 as MQTT Broker}}$
 3. 🆓How to Setup Secure MQTT Broker in ESP32 using PicoMQTT Library with Username and Password Authentication [**[Watch]**](https://youtu.be/iUi_xfFlSug)
 
 ---
+
+$\color{Green}\Huge{\textbf{ESP32 IoT ()}}$
+
+Self-contained **PlatformIO** firmware projects powered by the
+[](https://www..org/) reference stack (vendored and patched
+for ESP32) — each with a built-in web UI, NVS-persisted configuration, setup
+access point and dependency-free Python test tools:
+
+1. ⌛**[IoT Server](<%20UA%20Server/README.md>)** — exposes ESP32 process tags (`ns=1;s=Temperature`, Setpoint, RelayOutput, …) on `://<ip>:4840`; browse it from UaExpert, Prosys or TIA Portal
+2. ⌛**[IoT Client](<%20UA%20Client/README.md>)** — polls up to 8 configurable nodes from any IoT server (PLC/SCADA) with batched reads and automatic reconnect
+
+---

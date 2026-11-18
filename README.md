@@ -39,7 +39,7 @@ Tutorial status legend:
 
 | Board | Folder | What you'll find |
 |---|---|---|
-| **ESP32** | [`ESP32/`](<ESP32/README.md>) | MQTT broker tutorials using **PicoMQTT** — basic broker, custom TCP port, secure broker with username/password authentication |
+| **ESP32** | [`ESP32/`](<ESP32/README.md>) | MQTT broker tutorials using **PicoMQTT** — basic broker, custom TCP port, secure broker with username/password authentication; plus self-contained **IoT server & client** firmware ([](https://www..org/)) |
 | **ESP8266 (NodeMCU)** | [`ESP8266/`](<ESP8266/README.md>) | The largest collection — MQTT publishing (DHT11 → Mosquitto/HiveMQ/Ignition SCADA), secure MQTT broker (with WiFi AP mode), Modbus TCP client & server, Modbus RS485 master & slave, Modbus TCP → MQTT converter, WS2812B LED control over Modbus |
 | **Seeed XIAO ESP32C3** | [`XIAO ESP32C3/`](<XIAO%20ESP32C3/>) | DHT11 reading + publishing to HiveMQ, Modbus TCP client/server, Modbus TCP → MQTT converter, 1602 LCD **desk clock** with 3D-printed case, Android Auto experiments |
 | **ESP32-C3 Super Mini** | [`ESP32-C3 Super Mini/`](<ESP32-C3%20Super%20Mini/>) | Getting started — Blink |
@@ -61,6 +61,8 @@ Tutorial status legend:
 ```
 ESP/
 ├── ESP32/                          # PicoMQTT broker tutorials (video-linked)
+│   ├── IoT Server/              # IoT server firmware (, web UI, test tool)
+│   └── IoT Client/              # IoT client firmware (, web UI, simulator)
 ├── ESP32-C3 Super Mini/            # Getting started
 ├── ESP8266/                        # MQTT, Modbus TCP/RTU, DHT11 (full tutorial index in its README)
 │   ├── DHT11_MQTT_NodeMCU_Publish/
@@ -71,7 +73,7 @@ ESP/
 │   ├── Modbus Server/
 │   └── Modbus Slave/
 ├── WEMOS D1 Mini/                  # Getting started
-├── XIAO ESP32C3/                   # Desk clock, Android Auto, DHT11, MQTT, Modbus
+├── XIAO ESP32C3/                   # Desk clock, Android Auto, DHT11, MQTT, Modbus,  IP
 │   ├── Desk Clock/                 # Code + connection diagram + 3D printing files
 │   ├── ESP32_Android_Auto/
 │   ├── Modbus/
