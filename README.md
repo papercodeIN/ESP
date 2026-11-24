@@ -73,7 +73,7 @@ ESP/
 │   ├── Modbus Server/
 │   └── Modbus Slave/
 ├── WEMOS D1 Mini/                  # Getting started
-├── XIAO ESP32C3/                   # Desk clock, Android Auto, DHT11, MQTT, Modbus,  IP
+├── XIAO ESP32C3/                   # Desk clock, Android Auto, DHT11, MQTT, Modbus
 │   ├── Desk Clock/                 # Code + connection diagram + 3D printing files
 │   ├── ESP32_Android_Auto/
 │   ├── Modbus/

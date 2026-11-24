@@ -1,2 +1,5 @@
 # Local ZCode agent workspace config
 .zcode/
+
+# Private project - kept local only, never publish
+XIAO ESP32C3/ IP Device/
