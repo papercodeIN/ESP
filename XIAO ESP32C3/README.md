@@ -5,10 +5,10 @@
 
 [![Board](https://img.shields.io/badge/Board-XIAO_ESP32C3-00A0C6?style=for-the-badge)](https://wiki.seeedstudio.com/XIAO_ESP32C3_Getting_Started/)
 [![Membership](https://img.shields.io/badge/Membership-FREE-4CAF50?style=for-the-badge)](#-module-1--basic)
-[![Lessons](https://img.shields.io/badge/Lessons-18-FF9800?style=for-the-badge)](#-module-1--basic)
+[![Lessons](https://img.shields.io/badge/Lessons-20-FF9800?style=for-the-badge)](#-module-1--basic)
 [![Videos](https://img.shields.io/badge/Videos_Ready-11-9C27B0?style=for-the-badge)](#-module-2--firmware)
 
-*Learn to turn the tiny XIAO ESP32C3 into a Modbus TCP/IP Server, a Modbus Client, an MQTT Publisher and even a full MQTT Broker — one short lesson at a time.*
+*Learn to turn the tiny XIAO ESP32C3 into a Modbus TCP/IP Server, a Modbus Client, an MQTT Publisher, a full MQTT Broker and even a BACnet/IP device — one short lesson at a time.*
 
 <br>
 
@@ -71,6 +71,7 @@ TODO: Re-enable the Featured Lessons section above once more videos are uploaded
 | 2 | Modbus TCP → MQTT · Multiple HR [Single Unit ID] | ⌛ | ⌛ |
 | 3 | Modbus TCP → MQTT · Multiple HR [Multiple Unit ID] | ⌛ | ⌛ |
 | 4 | Publish SHT20 RS485 Sensor Data to MQTT | ⌛ | ⌛ |
+| 5 | Bi-Directional Modbus TCP ↔ MQTT Gateway | ⌛ | ⌛ |
 
 ---
 
@@ -103,6 +104,16 @@ TODO: Re-enable the Featured Lessons section above once more videos are uploaded
 | # | Lesson | Watch | 📦 Code |
 |:-:|--------|:-----:|:-------:|
 | 1 | 🆓 Setup MQTT Broker using EmbeddedMQTTBroker Library | [![Watch](https://img.shields.io/badge/▶_Watch-FF0000?style=flat-square&logo=youtube&logoColor=white)](https://youtu.be/EelvH5j9luU) | ⌛ |
+
+---
+
+## 📘 Module 8 · XIAO ESP32C3 as BACnet/IP Device
+
+> 📚 Complete project: [esp32-bacnet-ip-device](https://github.com/papercodeIN/esp32-bacnet-ip-device) — standard BACnet/IP (Annex J) on UDP 47808 with Who-Is / I-Am discovery, ReadProperty / ReadPropertyMultiple / WriteProperty, COV subscriptions, 16-level priority arrays, configurable GPIO and software memory points, and a built-in web setup & live monitoring UI — visible in YABE and any BACnet client.
+
+| # | Lesson | Watch | 📦 Code |
+|:-:|--------|:-----:|:-------:|
+| 1 | BACnet/IP Device · Complete Project | ⌛ | [![Code](https://img.shields.io/badge/Code-AVAILABLE-4CAF50?style=flat-square)](https://github.com/papercodeIN/esp32-bacnet-ip-device) |
 
 ---
 
