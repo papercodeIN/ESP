@@ -36,7 +36,7 @@
 | 6 | [📞 XIAO ESP32C3 as Modbus TCP/IP Client](#-module-6--xiao-esp32c3-as-modbus-tcpip-client) | 4 | 4 | ✅ |
 | 7 | [🧠 XIAO ESP32C3 as MQTT Broker](#-module-7--xiao-esp32c3-as-mqtt-broker) | 1 | 1 | ✅ |
 
-**Legend:** 🆓 Free lesson · ✅ Video available · ⌛ In progress / coming soon · 📝 Blog post
+**Legend:** 🆓 Free lesson · ✅ Video available · ⌛ In progress / coming soon
 
 > 📦 **Note:** The 📦 **Code** column is reserved for the lesson source code — all code links will be updated and published here soon.
 
@@ -55,8 +55,8 @@
 
 | # | Lesson | Watch | 📦 Code |
 |:-:|--------|:-----:|:-------:|
-| 1 | Basic Blink Code in XIAO ESP32C3 \| ESP32 | ⌛ | ⌛ |
-| 2 | How to read Temperature and Humidity Data of DHT11 Sensor using XIAO ESP32C3 | ⌛ | ⌛ |
+| 1 | Basic Blink Code | ⌛ | ⌛ |
+| 2 | Read DHT11 Temperature & Humidity | ⌛ | ⌛ |
 
 ---
 
@@ -64,8 +64,8 @@
 
 | # | Lesson | Watch | 📦 Code |
 |:-:|--------|:-----:|:-------:|
-| 1 | 🆓 How to Flash Factory Firmware in XIAO ESP32C3 \| ESP32 | [![Watch](https://img.shields.io/badge/▶_Watch-FF0000?style=flat-square&logo=youtube&logoColor=white)](https://youtu.be/-rI5l7HxSTI) | ⌛ |
-| 2 | 🆓 How to Flash Micropython Firmware in XIAO ESP32C3 \| ESP32 📝 [Blog](https://fusionautomate.in/how-to-flash-micropython-firmware-in-seed-studio-xiao-esp32c3-using-esptool/) | [![Watch](https://img.shields.io/badge/▶_Watch-FF0000?style=flat-square&logo=youtube&logoColor=white)](https://youtu.be/DguONHx8V9Q) | ⌛ |
+| 1 | 🆓 Flash Factory Firmware | [![Watch](https://img.shields.io/badge/▶_Watch-FF0000?style=flat-square&logo=youtube&logoColor=white)](https://youtu.be/-rI5l7HxSTI) | ⌛ |
+| 2 | 🆓 Flash Micropython Firmware | [![Watch](https://img.shields.io/badge/▶_Watch-FF0000?style=flat-square&logo=youtube&logoColor=white)](https://youtu.be/DguONHx8V9Q) | ⌛ |
 
 ---
 
@@ -73,7 +73,7 @@
 
 | # | Lesson | Watch | 📦 Code |
 |:-:|--------|:-----:|:-------:|
-| 1 | How to Publish DHT11 Sensor Data to HiveMQ MQTT Borker using XIAO ESP32C3 | ⌛ | ⌛ |
+| 1 | Publish DHT11 Data to HiveMQ MQTT Broker | ⌛ | ⌛ |
 
 ---
 
@@ -81,10 +81,10 @@
 
 | # | Lesson | Watch | 📦 Code |
 |:-:|--------|:-----:|:-------:|
-| 1 | Modbus TCP to MQTT Converter using XIAO ESP32C3 for Single Set of HR | ⌛ | ⌛ |
-| 2 | Modbus TCP to MQTT Converter using XIAO ESP32C3 for Multiple Set of HR [Single Unit ID] | ⌛ | ⌛ |
-| 3 | Modbus TCP to MQTT Converter using XIAO ESP32C3 for Multiple Set of HR [Multiple Unit ID] | ⌛ | ⌛ |
-| 4 | Publish SHT20 Modbus RS485 Temperature and Humidity Transmitter Data to MQTT Broker from XIAO ESP32C3 | ⌛ | ⌛ |
+| 1 | Modbus TCP → MQTT · Single Set of HR | ⌛ | ⌛ |
+| 2 | Modbus TCP → MQTT · Multiple HR [Single Unit ID] | ⌛ | ⌛ |
+| 3 | Modbus TCP → MQTT · Multiple HR [Multiple Unit ID] | ⌛ | ⌛ |
+| 4 | Publish SHT20 RS485 Sensor Data to MQTT | ⌛ | ⌛ |
 
 ---
 
@@ -92,10 +92,10 @@
 
 | # | Lesson | Watch | 📦 Code |
 |:-:|--------|:-----:|:-------:|
-| 1 | 🆓 How to Create Modbus TCP/IP Server/Device with using XIAO ESP32C3 | [![Watch](https://img.shields.io/badge/▶_Watch-FF0000?style=flat-square&logo=youtube&logoColor=white)](https://youtu.be/rWTEfvU_PKg) | ⌛ |
-| 2 | 🆓 How to Publish Analog Sensor Data from XIAO ESP32C3 to Built-in Modbus TCP/IP Server/Device and Read it in any Modbus Client | [![Watch](https://img.shields.io/badge/▶_Watch-FF0000?style=flat-square&logo=youtube&logoColor=white)](https://youtu.be/Z6hdz__S-pw) | ⌛ |
-| 3 | 🆓 How to Control Digital Pins of XIAO ESP32C3 using Built-in Modbus TCP Server from Remote Modbus Client | [![Watch](https://img.shields.io/badge/▶_Watch-FF0000?style=flat-square&logo=youtube&logoColor=white)](https://youtu.be/poAjAfELsgE) | ⌛ |
-| 4 | 🆓 How to Publish DHT11 Sensor Data from XIAO ESP32C3 to Built-in Modbus TCP/IP Server/Device and Read it in Any Modbus Client 📝 [Blog](https://fusion-automate.blogspot.com/2024/03/how-to-publish-dht11-sensor-data-from.html) | [![Watch](https://img.shields.io/badge/▶_Watch-FF0000?style=flat-square&logo=youtube&logoColor=white)](https://youtu.be/scSVUt-cMPc) | ⌛ |
+| 1 | 🆓 Create Modbus TCP/IP Server / Device | [![Watch](https://img.shields.io/badge/▶_Watch-FF0000?style=flat-square&logo=youtube&logoColor=white)](https://youtu.be/rWTEfvU_PKg) | ⌛ |
+| 2 | 🆓 Publish Analog Data to Built-in Modbus Server | [![Watch](https://img.shields.io/badge/▶_Watch-FF0000?style=flat-square&logo=youtube&logoColor=white)](https://youtu.be/Z6hdz__S-pw) | ⌛ |
+| 3 | 🆓 Control Digital Pins via Built-in Modbus Server | [![Watch](https://img.shields.io/badge/▶_Watch-FF0000?style=flat-square&logo=youtube&logoColor=white)](https://youtu.be/poAjAfELsgE) | ⌛ |
+| 4 | 🆓 Publish DHT11 Data to Built-in Modbus Server | [![Watch](https://img.shields.io/badge/▶_Watch-FF0000?style=flat-square&logo=youtube&logoColor=white)](https://youtu.be/scSVUt-cMPc) | ⌛ |
 
 ---
 
@@ -103,10 +103,10 @@
 
 | # | Lesson | Watch | 📦 Code |
 |:-:|--------|:-----:|:-------:|
-| 1 | 🆓 How to Create Modbus TCP/IP Client using XIAO ESP32C3 to Read Holding Register of Modbus TCP/IP Device | [![Watch](https://img.shields.io/badge/▶_Watch-FF0000?style=flat-square&logo=youtube&logoColor=white)](https://youtu.be/dP7jTveWYLQ) | ⌛ |
-| 2 | 🆓 How to Create Modbus TCP/IP Client using XIAO ESP32C3 to Read Input Register of Modbus TCP/IP Device | [![Watch](https://img.shields.io/badge/▶_Watch-FF0000?style=flat-square&logo=youtube&logoColor=white)](https://youtu.be/JUuocahaubI) | ⌛ |
-| 3 | 🆓 How to Create Modbus TCP/IP Client using XIAO ESP32C3 to Read Coil Status of Modbus TCP/IP Device | [![Watch](https://img.shields.io/badge/▶_Watch-FF0000?style=flat-square&logo=youtube&logoColor=white)](https://youtu.be/QYr1RRCvBhw) | ⌛ |
-| 4 | 🆓 How to Create Modbus TCP/IP Client using XIAO ESP32C3 to Read Input Coil Status of Modbus TCP/IP Device | [![Watch](https://img.shields.io/badge/▶_Watch-FF0000?style=flat-square&logo=youtube&logoColor=white)](https://youtu.be/BEnR4eqWpBs) | ⌛ |
+| 1 | 🆓 Read Holding Register of Modbus TCP/IP Device | [![Watch](https://img.shields.io/badge/▶_Watch-FF0000?style=flat-square&logo=youtube&logoColor=white)](https://youtu.be/dP7jTveWYLQ) | ⌛ |
+| 2 | 🆓 Read Input Register of Modbus TCP/IP Device | [![Watch](https://img.shields.io/badge/▶_Watch-FF0000?style=flat-square&logo=youtube&logoColor=white)](https://youtu.be/JUuocahaubI) | ⌛ |
+| 3 | 🆓 Read Coil Status of Modbus TCP/IP Device | [![Watch](https://img.shields.io/badge/▶_Watch-FF0000?style=flat-square&logo=youtube&logoColor=white)](https://youtu.be/QYr1RRCvBhw) | ⌛ |
+| 4 | 🆓 Read Input Coil Status of Modbus TCP/IP Device | [![Watch](https://img.shields.io/badge/▶_Watch-FF0000?style=flat-square&logo=youtube&logoColor=white)](https://youtu.be/BEnR4eqWpBs) | ⌛ |
 
 ---
 
@@ -116,7 +116,7 @@
 
 | # | Lesson | Watch | 📦 Code |
 |:-:|--------|:-----:|:-------:|
-| 1 | 🆓 XIAO ESP32C3 as MQTT Broker \| How to Setup MQTT Broker in XIAO ESP32C3 using EmbeddedMQTTBroker Library | [![Watch](https://img.shields.io/badge/▶_Watch-FF0000?style=flat-square&logo=youtube&logoColor=white)](https://youtu.be/EelvH5j9luU) | ⌛ |
+| 1 | 🆓 Setup MQTT Broker using EmbeddedMQTTBroker Library | [![Watch](https://img.shields.io/badge/▶_Watch-FF0000?style=flat-square&logo=youtube&logoColor=white)](https://youtu.be/EelvH5j9luU) | ⌛ |
 
 ---
 
