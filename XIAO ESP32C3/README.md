@@ -4,7 +4,7 @@
 ### Self-Paced Training Course · IoT · Modbus TCP/IP · MQTT
 
 [![Board](https://img.shields.io/badge/Board-XIAO_ESP32C3-00A0C6?style=for-the-badge)](https://wiki.seeedstudio.com/XIAO_ESP32C3_Getting_Started/)
-[![Membership](https://img.shields.io/badge/Membership-FREE-4CAF50?style=for-the-badge)](https://fusion-automate.notion.site/Seeed-Studio-XIAO-ESP32C3-b0082a2414da49d781462cce8c657f00)
+[![Membership](https://img.shields.io/badge/Membership-FREE-4CAF50?style=for-the-badge)](#-module-1--basic)
 [![Lessons](https://img.shields.io/badge/Lessons-18-FF9800?style=for-the-badge)](#-module-1--basic)
 [![Videos](https://img.shields.io/badge/Videos_Ready-11-9C27B0?style=for-the-badge)](#-module-2--firmware)
 
@@ -17,7 +17,7 @@
 </a>
 
 <a href="https://www.youtube.com/channel/UCKKhdFV0q8CV5vWUDfiDfTw" target="_blank">
-  <img src="https://img.shields.io/badge/SUBSCRIBE%20ON%20YOUTUBE-FF0000?style=for-the-badge&logo=youtube&logoColor=white" alt="Subscribe on YouTube" height="40">
+  <img src="assets/youtube-subscribe.png" alt="Subscribe on YouTube" height="40">
 </a>
 
 </div>
@@ -117,11 +117,9 @@ TODO: Re-enable the Featured Lessons section above once more videos are uploaded
 </a>
 
 <a href="https://www.youtube.com/channel/UCKKhdFV0q8CV5vWUDfiDfTw" target="_blank">
-  <img src="https://img.shields.io/badge/SUBSCRIBE%20ON%20YOUTUBE-FF0000?style=for-the-badge&logo=youtube&logoColor=white" alt="Subscribe on YouTube" height="40">
+  <img src="assets/youtube-subscribe.png" alt="Subscribe on YouTube" height="40">
 </a>
 
 <br>
-
-🎓 [Training details on Notion](https://fusion-automate.notion.site/Seeed-Studio-XIAO-ESP32C3-b0082a2414da49d781462cce8c657f00)
 
 </div>
