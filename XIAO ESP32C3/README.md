@@ -109,8 +109,6 @@ TODO: Re-enable the Featured Lessons section above once more videos are uploaded
 
 ## 📘 Module 8 · XIAO ESP32C3 as BACnet/IP Device
 
-> 📚 Complete project: [esp32-bacnet-ip-device](https://github.com/papercodeIN/esp32-bacnet-ip-device) — standard BACnet/IP (Annex J) on UDP 47808 with Who-Is / I-Am discovery, ReadProperty / ReadPropertyMultiple / WriteProperty, COV subscriptions, 16-level priority arrays, configurable GPIO and software memory points, and a built-in web setup & live monitoring UI — visible in YABE and any BACnet client.
-
 | # | Lesson | Watch | 📦 Code |
 |:-:|--------|:-----:|:-------:|
 | 1 | BACnet/IP Device · Complete Project | ⌛ | [![Code](https://img.shields.io/badge/Code-AVAILABLE-4CAF50?style=flat-square)](https://github.com/papercodeIN/esp32-bacnet-ip-device) |
