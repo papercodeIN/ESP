@@ -5,8 +5,8 @@
 
 [![Board](https://img.shields.io/badge/Board-XIAO_ESP32C3-00A0C6?style=for-the-badge)](https://wiki.seeedstudio.com/XIAO_ESP32C3_Getting_Started/)
 [![Membership](https://img.shields.io/badge/Membership-FREE-4CAF50?style=for-the-badge)](https://fusion-automate.notion.site/Seeed-Studio-XIAO-ESP32C3-b0082a2414da49d781462cce8c657f00)
-[![Lessons](https://img.shields.io/badge/Lessons-18-FF9800?style=for-the-badge)](#-course-map)
-[![Videos](https://img.shields.io/badge/Videos_Ready-11-9C27B0?style=for-the-badge)](#-course-map)
+[![Lessons](https://img.shields.io/badge/Lessons-18-FF9800?style=for-the-badge)](#-module-1--basic)
+[![Videos](https://img.shields.io/badge/Videos_Ready-11-9C27B0?style=for-the-badge)](#-module-2--firmware)
 
 *Learn to turn the tiny XIAO ESP32C3 into a Modbus TCP/IP Server, a Modbus Client, an MQTT Publisher and even a full MQTT Broker — one short lesson at a time.*
 
@@ -22,26 +22,11 @@
 
 </div>
 
----
-
-## 🧭 Course Map
-
-| # | Module | Lessons | Videos | Status |
-|:-:|--------|:-------:|:------:|:------:|
-| 1 | [🧱 Basic](#-module-1--basic) | 2 | 0 | 🔜 |
-| 2 | [⚡ Firmware](#-module-2--firmware) | 2 | 2 | ✅ |
-| 3 | [📡 MQTT Publisher](#-module-3--mqtt-publisher) | 1 | 0 | 🔜 |
-| 4 | [🔄 Modbus Client + MQTT Publisher](#-module-4--modbus-client--mqtt-publisher) | 4 | 0 | 🔜 |
-| 5 | [🖥️ XIAO ESP32C3 as Modbus TCP/IP Server / Device](#-module-5--xiao-esp32c3-as-modbus-tcpip-server--device) | 4 | 4 | ✅ |
-| 6 | [📞 XIAO ESP32C3 as Modbus TCP/IP Client](#-module-6--xiao-esp32c3-as-modbus-tcpip-client) | 4 | 4 | ✅ |
-| 7 | [🧠 XIAO ESP32C3 as MQTT Broker](#-module-7--xiao-esp32c3-as-mqtt-broker) | 1 | 1 | ✅ |
-
 **Legend:** 🆓 Free lesson · ✅ Video available · ⌛ In progress / coming soon
 
 > 📦 **Note:** The 📦 **Code** column is reserved for the lesson source code — all code links will be updated and published here soon.
 
----
-
+<!--
 ## 🌟 Featured Lessons
 
 | | | |
@@ -49,7 +34,8 @@
 | [![Modbus TCP/IP Server](https://img.youtube.com/vi/rWTEfvU_PKg/mqdefault.jpg)](https://youtu.be/rWTEfvU_PKg) | [![Read Holding Register](https://img.youtube.com/vi/dP7jTveWYLQ/mqdefault.jpg)](https://youtu.be/dP7jTveWYLQ) | [![MQTT Broker](https://img.youtube.com/vi/EelvH5j9luU/mqdefault.jpg)](https://youtu.be/EelvH5j9luU) |
 | ▶️ Modbus TCP/IP Server / Device | ▶️ Read Holding Registers | ▶️ XIAO ESP32C3 as MQTT Broker |
 
----
+TODO: Re-enable the Featured Lessons section above once more videos are uploaded.
+-->
 
 ## 📘 Module 1 · Basic
 
