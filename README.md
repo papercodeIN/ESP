@@ -15,14 +15,13 @@
 </p>
 
 [![YouTube](https://img.shields.io/badge/YouTube-Fusion_Automate-FF0000?logo=youtube&logoColor=white)](https://www.youtube.com/channel/UCKKhdFV0q8CV5vWUDfiDfTw)
+[![X](https://img.shields.io/badge/X-fusion__automate-000000?logo=x&logoColor=white)](https://x.com/fusion_automate)
 [![Telegram](https://img.shields.io/badge/Telegram-%40fusionautomate-26A5E4?logo=telegram&logoColor=white)](https://t.me/fusionautomate)
 [![Instagram](https://img.shields.io/badge/Instagram-%40fusion__automate-E4405F?logo=instagram&logoColor=white)](https://www.instagram.com/fusion_automate)
 [![WhatsApp](https://img.shields.io/badge/WhatsApp-%2B91--9974477759-25D366?logo=whatsapp&logoColor=white)](https://wa.me/919974477759)
+[![Email](https://img.shields.io/badge/Email-eng.innovativ%40gmail.com-c71610?logo=gmail&logoColor=white)](mailto:eng.innovativ@gmail.com)
+[![Website](https://img.shields.io/badge/Website-fusionautomate.in-blueviolet?logo=internet&logoColor=white)](https://fusionautomate.in/)
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy_Me_a_Coffee-support-FFDD00?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/pylin)
-
-  <a href="https://x.com/fusion_automate"><img src="https://img.shields.io/badge/X-fusion__automate-000000?style=for-the-badge&logo=x" alt="X (Twitter)"></a>
-  <a href="mailto:eng.innovativ@gmail.com"><img src="https://img.shields.io/badge/Email-eng.innovativ%40gmail.com-c71610?style=for-the-badge&logo=gmail&logoColor=white" alt="Email"></a>
-  <a href="https://fusionautomate.in/"><img src="https://img.shields.io/badge/Website-fusionautomate.in-blueviolet?style=for-the-badge" alt="Website"></a>
 </div>
 
 ---
