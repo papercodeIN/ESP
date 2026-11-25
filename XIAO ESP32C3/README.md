@@ -48,10 +48,10 @@ TODO: Re-enable the Featured Lessons section above once more videos are uploaded
 
 ## 📘 Module 2 · Firmware
 
-| # | Lesson | Watch | 📦 Code |
-|:-:|--------|:-----:|:-------:|
-| 1 | 🆓 Flash Factory Firmware | [![Watch](https://img.shields.io/badge/▶_Watch-FF0000?style=flat-square&logo=youtube&logoColor=white)](https://youtu.be/-rI5l7HxSTI) | ⌛ |
-| 2 | 🆓 Flash Micropython Firmware | [![Watch](https://img.shields.io/badge/▶_Watch-FF0000?style=flat-square&logo=youtube&logoColor=white)](https://youtu.be/DguONHx8V9Q) | ⌛ |
+| # | Lesson | Watch |
+|:-:|--------|:-----:|
+| 1 | 🆓 Flash Factory Firmware | [![Watch](https://img.shields.io/badge/▶_Watch-FF0000?style=flat-square&logo=youtube&logoColor=white)](https://youtu.be/-rI5l7HxSTI) |
+| 2 | 🆓 Flash Micropython Firmware | [![Watch](https://img.shields.io/badge/▶_Watch-FF0000?style=flat-square&logo=youtube&logoColor=white)](https://youtu.be/DguONHx8V9Q) |
 
 ---
 
