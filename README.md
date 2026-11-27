@@ -30,6 +30,8 @@
 
 This is the tutorial companion repository for the **Fusion Automate** YouTube channel. Each board folder contains Arduino sketches, wiring diagrams (Fritzing), library setup screenshots and example code used in our step-by-step videos — covering **MQTT**, **Modbus TCP/RTU**, sensor publishing (**DHT11**, SHT20) and small display projects.
 
+> **Building a BACnet/IP or Modbus TCP gateway?** Production-ready versions of these projects are maintained privately — see [`Private-Projects/`](<Private-Projects/README.md>) for what is available and how to get in touch.
+
 Tutorial status legend:
 
 | Icon | Meaning |
@@ -58,6 +60,10 @@ Tutorial status legend:
 - ✅ **Projects** — 1602 LCD desk clock (3D-printable case included), Android Auto on XIAO ESP32C3
 - ✅ Every tutorial includes sketch + connection diagram; most include a **video** and/or **blog post**
 
+## Private & Commercial Projects
+
+Complete, web-configured **BACnet/IP** and **Modbus TCP** firmware is maintained privately and is **not** part of this open-source repository. The available projects — a BACnet/IP device, BACnet/IP ⇄ MQTT gateways and Modbus TCP ⇄ MQTT gateways — are listed in [`Private-Projects/README.md`](<Private-Projects/README.md>), along with how to request the enquiry form and commercial terms.
+
 ## Repository Structure
 
 ```
@@ -78,6 +84,7 @@ ESP/
 │   ├── ESP32_Android_Auto/
 │   ├── Modbus/
 │   └── How to ... DHT11 .../       # Step-by-step sensor & MQTT tutorials
+├── Private-Projects/               # Closed-source commercial firmware — enquiry only
 └── README.md
 ```
 
